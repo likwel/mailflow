@@ -1,0 +1,139 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum EmailStatus {
+  PENDING
+  SENT
+  FAILED
+  BOUNCED
+}
+
+enum TemplateType {
+  PERSONAL   // créé par l'utilisateur
+  SYSTEM     // fourni par la plateforme
+}
+
+// ─── User ─────────────────────────────────────────────
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  password      String?          // ← ajouter cette ligne
+  googleId      String?  @unique
+  avatar        String?
+  role          Role     @default(USER)
+  plan          Plan     @default(FREE)
+  emailsUsed    Int      @default(0)
+  emailsReset   DateTime @default(now()) // date du dernier reset mensuel
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  apiKeys       ApiKey[]
+  templates     Template[]
+  emails        EmailLog[]
+  sessions      Session[]
+}
+
+// ─── Plan (limites par tier) ─────────────────────────
+
+enum Plan {
+  FREE      // 100 emails/mois
+  PRO       // 5 000 emails/mois
+  BUSINESS  // 50 000 emails/mois
+}
+
+// ─── Session (OAuth) ──────────────────────────────────
+
+model Session {
+  id        String   @id @default(cuid())
+  userId   String
+  token     String   @unique @default(cuid())
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── API Key ──────────────────────────────────────────
+
+model ApiKey {
+  id        String   @id @default(cuid())
+  userId   String
+  name      String
+  key       String   @unique  // hashed
+  keyPrefix String             // 8 premiers chars pour l'affichage (ex: "sk_live_Ab3d...")
+  isActive  Boolean  @default(true)
+  lastUsed  DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── Template ─────────────────────────────────────────
+
+model Template {
+  id        String       @id @default(cuid())
+  userId   String?      // null si SYSTEM
+  name      String
+  subject   String
+  htmlBody  String
+  textBody  String?
+  type      TemplateType @default(PERSONAL)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emails EmailLog[]  // ← ajouter cette ligne
+}
+
+// ─── Email Log ────────────────────────────────────────
+
+model EmailLog {
+  id          String      @id @default(cuid())
+  userId     String
+  templateId  String?
+  to          String[]                    // destinataires
+  cc          String[]                    @default([])
+  bcc         String[]                    @default([])
+  subject     String
+  htmlBody    String
+  textBody    String?
+  status      EmailStatus @default(PENDING)
+  error       String?
+  sentAt      DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  isBulk      Boolean     @default(false)
+  bulkGroupId String?     // pour regrouper les envois en lot
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template Template? @relation(fields: [templateId], references: [id])
+}
+
+// ─── Rate Limit ───────────────────────────────────────
+
+model RateLimit {
+  id        String   @id @default(cuid())
+  key       String   @unique  // ex: "api_key:abc123" ou "user:cuid123"
+  count     Int      @default(1)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
