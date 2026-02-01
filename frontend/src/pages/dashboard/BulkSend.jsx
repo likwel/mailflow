@@ -1,27 +1,45 @@
-// =====================================================
-// src/pages/dashboard/BulkSend.jsx
-// =====================================================
 import { useState } from "react";
 import { T, styles } from "../../theme";
+import client from "../../api/client";
 
 export default function BulkSend() {
   const [recipients, setRecipients] = useState("");
-  const [subject, setSubject]       = useState("");
-  const [html, setHtml]             = useState("");
-  const [sent, setSent]             = useState(null);
+  const [subject, setSubject] = useState("");
+  const [html, setHtml] = useState("");
+  const [sent, setSent] = useState(null);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const count = recipients.split("\n").filter((x) => x.trim()).length;
+  const emails = recipients.split("\n").map(x => x.trim()).filter(Boolean);
+  const count = emails.length;
 
-  function submit() {
-    if (!count || !subject) { alert("Remplissez tous les champs."); return; }
-    setSent({ count, time: new Date().toLocaleTimeString() });
-    setRecipients(""); setSubject(""); setHtml("");
+  async function submit() {
+    if (!count || !subject || !html) {
+      setError("Remplissez tous les champs.");
+      return;
+    }
+    setError("");
+    setLoading(true);
+    try {
+      const res = await client.post("/dashboard/send", {
+        to: emails,
+        subject,
+        html,
+      });
+      setSent({ count: res.data.sent, time: new Date().toLocaleTimeString() });
+      setRecipients("");
+      setSubject("");
+      setHtml("");
+    } catch (err) {
+      setError(err.response?.data?.error || "Erreur lors de l'envoi");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       <div>
-        {/* <h1 style={{ color: T.text, fontSize: 22, fontWeight: 700, margin: 0 }}>Bulk Send</h1> */}
         <p style={{ color: T.textSub, fontSize: 20, margin: "4px 0 0" }}>Envoyer des emails à plusieurs destinataires en une opération</p>
       </div>
 
@@ -30,6 +48,13 @@ export default function BulkSend() {
         <div style={{ background: T.successLight, border: "1px solid #bbf7d0", borderRadius: T.radius, padding: "14px 18px" }}>
           <p style={{ color: T.success, fontSize: 13, fontWeight: 600, margin: 0 }}>✅ {sent.count} email(s) envoyé(s) avec succès à {sent.time}</p>
           <button onClick={() => setSent(null)} style={{ background: "none", border: "none", color: T.textSub, fontSize: 11, cursor: "pointer", marginTop: 4, padding: 0 }}>Fermer</button>
+        </div>
+      )}
+
+      {/* Erreur */}
+      {error && (
+        <div style={{ background: T.dangerLight, border: `1px solid ${T.danger}`, borderRadius: T.radius, padding: "12px 16px" }}>
+          <p style={{ color: T.danger, fontSize: 13, fontWeight: 600, margin: 0 }}>❌ {error}</p>
         </div>
       )}
 
@@ -54,7 +79,18 @@ export default function BulkSend() {
             <textarea value={html} onChange={(e) => setHtml(e.target.value)} placeholder={"<h1>Titre</h1>\n<p>Contenu de votre email...</p>"} rows={4} style={{ ...styles.input, resize: "vertical", fontFamily: "monospace", fontSize: 12, padding: "10px 13px" }} />
           </div>
           {/* Submit */}
-          <button onClick={submit} style={{ ...styles.btnSm, alignSelf: "flex-start" }}>📬 Envoyer en lot ({count})</button>
+          <button
+            onClick={submit}
+            disabled={loading}
+            style={{
+              ...styles.btnSm,
+              alignSelf: "flex-start",
+              opacity: loading ? 0.6 : 1,
+              cursor: loading ? "not-allowed" : "pointer",
+            }}
+          >
+            {loading ? "⏳ Envoi en cours..." : `📬 Envoyer en lot (${count})`}
+          </button>
         </div>
       </div>
     </div>

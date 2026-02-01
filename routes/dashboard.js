@@ -5,6 +5,9 @@ const express = require("express");
 const { authMiddleware } = require("../middleware/auth");
 const { hashKey } = require("../middleware/apiKeyAuth");
 const { PLAN_LIMITS, checkQuota } = require("../utils/planLimits");
+const transporter = require("../config/smtp");
+const { PrismaClient } = require("@prisma/client");
+const prisma = new PrismaClient();
 
 const dashRouter = express.Router();
 dashRouter.use(authMiddleware);
@@ -164,6 +167,76 @@ dashRouter.post("/send-bulk", async (req, res) => {
   });
 
   res.json({ bulkGroupId, results, total: recipients.length });
+});
+
+// POST /dashboard/send
+dashRouter.post("/send", async (req, res) => {
+  const { user } = req;
+  const { to, subject, html, text } = req.body;
+
+  if (!to || !Array.isArray(to) || to.length === 0)
+    return res.status(400).json({ error: "Destinataires requis" });
+  if (!subject)
+    return res.status(400).json({ error: "Sujet requis" });
+  if (!html && !text)
+    return res.status(400).json({ error: "Corps de l'email requis" });
+
+  // Check quota
+  const quota = checkQuota(user);
+  if (user.emailsUsed + to.length > quota.limit) {
+    return res.status(429).json({ error: "Quota mensuel dépassé", used: user.emailsUsed, limit: quota.limit });
+  }
+
+  const bulkGroupId = to.length > 1 ? crypto.randomBytes(8).toString("hex") : null;
+
+  try {
+    const logs = [];
+    for (const recipient of to) {
+      await transporter.sendMail({
+        from: process.env.SMTP_FROM || process.env.SMTP_USER,
+        to: recipient,
+        subject,
+        html,
+        text,
+      });
+
+      const log = await prisma.emailLog.create({
+        data: {
+          userId: user.id,
+          to: [recipient],
+          subject,
+          htmlBody: html || "",
+          textBody: text || null,
+          status: "SENT",
+          sentAt: new Date(),
+          isBulk: to.length > 1,
+          bulkGroupId,
+        },
+      });
+      logs.push(log);
+    }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { emailsUsed: { increment: to.length } },
+    });
+
+    res.json({ success: true, sent: to.length, logs: logs.map(l => ({ id: l.id, to: l.to, status: l.status })) });
+  } catch (e) {
+    await prisma.emailLog.create({
+      data: {
+        userId: user.id,
+        to,
+        subject,
+        htmlBody: html || "",
+        status: "FAILED",
+        error: e.message,
+        isBulk: to.length > 1,
+        bulkGroupId,
+      },
+    });
+    res.status(500).json({ error: "Échec de l'envoi", details: e.message });
+  }
 });
 
 module.exports = dashRouter;
