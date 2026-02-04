@@ -2,6 +2,14 @@
 // src/pages/landing/Home.jsx
 // =====================================================
 import { T, styles } from "../../theme";
+import {
+  FiZap,
+  FiLock,
+  FiBarChart2,
+  FiFileText,
+  FiMail,
+  FiBell
+} from "react-icons/fi";
 
 const CODE = `const res = await fetch("https://api.mailflow.dev/api/v1/send", {
   method: "POST",
@@ -19,12 +27,36 @@ const CODE = `const res = await fetch("https://api.mailflow.dev/api/v1/send", {
 // → { success: true, sent: 1 }`;
 
 const FEATURES = [
-  { icon: "⚡", title: "API rapide",   desc: "Latence < 200ms. Envoyer depuis n'importe quel client sans backend." },
-  { icon: "🔒", title: "Sécurité",     desc: "API keys hashées SHA-256, rate limiting automatique, HTTPS." },
-  { icon: "📊", title: "Dashboard",    desc: "Suivez vos envois en temps réel avec des logs détaillés." },
-  { icon: "📝", title: "Templates",    desc: "Créez des templates réutilisables avec des variables {{variable}}." },
-  { icon: "📬", title: "Bulk Send",    desc: "Envoyer à des milliers de destinataires d'un coup." },
-  { icon: "🔔", title: "Webhooks",     desc: "Recevez des notifications en temps réel (Pro)." },
+  {
+    icon: FiZap,
+    title: "API rapide",
+    desc: "Latence < 200ms. Envoyer depuis n'importe quel client sans backend."
+  },
+  {
+    icon: FiLock,
+    title: "Sécurité",
+    desc: "API keys hashées SHA-256, rate limiting automatique, HTTPS."
+  },
+  {
+    icon: FiBarChart2,
+    title: "Dashboard",
+    desc: "Suivez vos envois en temps réel avec des logs détaillés."
+  },
+  {
+    icon: FiFileText,
+    title: "Templates",
+    desc: "Créez des templates réutilisables avec des variables {{variable}}."
+  },
+  {
+    icon: FiMail,
+    title: "Bulk Send",
+    desc: "Envoyer à des milliers de destinataires d'un coup."
+  },
+  {
+    icon: FiBell,
+    title: "Webhooks",
+    desc: "Recevez des notifications en temps réel (Pro)."
+  },
 ];
 
 const STATS = [
@@ -46,7 +78,7 @@ export default function Home() {
 
         <h1 style={{ fontSize: 52, fontWeight: 700, color: T.text, lineHeight: 1.15, margin: "0 0 20px" }}>
           Envoyer des emails<br />
-          <span style={{ color: T.primary }}>sans backend</span>
+          <span style={{ color: T.primary }}>directement depuis votre client</span>
         </h1>
 
         <p style={{ color: T.textSub, fontSize: 17, maxWidth: 540, margin: "0 auto 36px", lineHeight: 1.6 }}>
@@ -86,7 +118,7 @@ export default function Home() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 18 }}>
           {FEATURES.map((f) => (
             <div key={f.title} style={{ ...styles.card, padding: 26 }}>
-              <div style={{ fontSize: 26, marginBottom: 10 }}>{f.icon}</div>
+              <div style={{ fontSize: 26, marginBottom: 10 }}><f.icon fontSize={40} color="#34d399"/></div>
               <h3 style={{ color: T.text, fontSize: 15, fontWeight: 600, margin: "0 0 6px" }}>{f.title}</h3>
               <p style={{ color: T.textSub, fontSize: 13, lineHeight: 1.6, margin: 0 }}>{f.desc}</p>
             </div>

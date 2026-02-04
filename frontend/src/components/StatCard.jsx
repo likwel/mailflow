@@ -3,12 +3,12 @@
 // =====================================================
 import { T, styles } from "../theme";
 
-export default function StatCard({ title, value, sub, icon, color }) {
+export default function StatCard({ title, value, sub, icon : Icon, color }) {
   return (
     <div style={{ ...styles.card, padding: 20 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
-          <p style={{ color: T.textMuted, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 6px", fontWeight: 600 }}>
+          <p style={{ color: T.textMuted, fontSize: '0.75rem', textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 6px", fontWeight: 600 }}>
             {title}
           </p>
           <p style={{ color: T.text, fontSize: 26, fontWeight: 700, margin: 0 }}>{value}</p>
@@ -24,7 +24,7 @@ export default function StatCard({ title, value, sub, icon, color }) {
           justifyContent: "center",
           fontSize: 18,
         }}>
-          {icon}
+          <Icon size={25} color={color}/>
         </div>
       </div>
     </div>

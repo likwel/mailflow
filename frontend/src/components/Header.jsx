@@ -4,6 +4,13 @@
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { T, styles } from "../theme";
+import {
+  FiHome,
+  FiFileText,
+  FiKey,
+  FiMail,
+  FiSettings, FiLogOut, FiBell
+} from "react-icons/fi";
 
 // Notifications mock — à remplacer par une vraie API
 const MOCK_NOTIFICATIONS = [
@@ -96,13 +103,14 @@ export default function Header({ activePage }) {
             onMouseEnter={e => e.currentTarget.style.background = T.bg}
             onMouseLeave={e => e.currentTarget.style.background = "transparent"}
           >
-            🔔
+            {/* 🔔 */}
+            <FiBell size={20} color="#6366f1"/>
             {/* Badge */}
             {unreadCount > 0 && (
               <span style={{
                 position: "absolute",
-                top: 5, right: 5,
-                width: 18, height: 18,
+                top: 0, right: 0,
+                width: 15, height: 15,
                 background: T.danger,
                 color: "#fff",
                 borderRadius: "50%",
@@ -221,6 +229,7 @@ export default function Header({ activePage }) {
         <button
           onClick={logout}
           style={{
+            display: "flex", alignItems: "center", gap: 8,
             background: "transparent",
             border: `1px solid ${T.border}`,
             borderRadius: 8,
@@ -233,7 +242,7 @@ export default function Header({ activePage }) {
           onMouseEnter={e => { e.currentTarget.style.borderColor = T.danger; e.currentTarget.style.color = T.danger; }}
           onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.textSub; }}
         >
-          🚪 Déconnecter
+          <FiLogOut size={18} /> Déconnecter
         </button>
       </div>
     </header>

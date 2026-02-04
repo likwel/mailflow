@@ -12,7 +12,7 @@ export default function QuotaBar({ used, total }) {
   return (
     <div style={{ ...styles.card, padding: 20 }}>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-        <span style={{ color: T.text, fontSize: 13, fontWeight: 600 }}>Quota mensuel</span>
+        <span style={{ color: T.text, fontSize: "1rem", fontWeight: 600 }}>Quota mensuel</span>
         <span style={{ color: T.primary, fontSize: 13, fontWeight: 600 }}>{used.toLocaleString()} / {total.toLocaleString()}</span>
       </div>
       <div style={{ height: 8, background: T.bg, borderRadius: 4, overflow: "hidden", border: `1px solid ${T.border}` }}>

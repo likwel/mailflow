@@ -66,9 +66,17 @@ export default function Register() {
             display: "flex", alignItems: "center", justifyContent: "center",
             color: "#fff", fontWeight: 700, fontSize: 20,
           }}>
-            M
+            <img
+              src="../public/logo.png"
+              alt="Logo"
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+              }}
+            />
           </div>
-          <span style={{ color: T.text, fontWeight: 700, fontSize: 22 }}>MailFlow</span>
+          <span style={{ color: T.text, fontWeight: 700, fontSize: '1.5rem', fontFamily: "'Pacifico', cursive", letterSpacing: '0.5px'}}>MailFlow</span>
         </div>
 
         {/* Titre */}

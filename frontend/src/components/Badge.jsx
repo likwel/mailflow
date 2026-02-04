@@ -22,6 +22,7 @@ export default function Badge({ status }) {
       borderRadius: 20,
       textTransform: "uppercase",
       display: "inline-block",
+      width: "fit-content", 
     }}>
       {status}
     </span>

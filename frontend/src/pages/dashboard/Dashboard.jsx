@@ -24,7 +24,7 @@ export default function Dashboard() {
     <div style={{ minHeight: "100vh", background: T.bg, fontFamily: "'Inter',-apple-system,sans-serif", display: "flex" }}>
       <Sidebar active={page} onNavigate={setPage} user={user} />
       <Header activePage={page} />  {/* ← ajouter */}
-      <main style={{ marginLeft: 220, flex: 1, padding: "32px 40px", maxWidth: 960, marginTop:50 }}>
+      <main style={{ marginLeft: 220, flex: 1, padding: "32px 40px", maxWidth: "100%", marginTop:50 }}>
         <Page />
       </main>
     </div>

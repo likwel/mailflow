@@ -20,9 +20,17 @@ export default function Navbar({ active, setActive }) {
       {/* Logo */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => setActive("Home")}>
         <div style={{ width: 34, height: 34, borderRadius: 9, background: T.primary, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 17 }}>
-          M
+          <img
+            src="../public/logo.png"
+            alt="Logo"
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+            }}
+          />
         </div>
-        <span style={{ color: T.text, fontWeight: 700, fontSize: 19 }}>MailFlow</span>
+        <span style={{ color: T.text, fontWeight: 700, fontSize: '1.5rem', fontFamily: "'Pacifico', cursive", letterSpacing: '0.5px'}}>MailFlow</span>
       </div>
 
       {/* Links */}

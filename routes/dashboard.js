@@ -8,6 +8,7 @@ const { PLAN_LIMITS, checkQuota } = require("../utils/planLimits");
 const transporter = require("../config/smtp");
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
+const crypto = require("crypto");
 
 const dashRouter = express.Router();
 dashRouter.use(authMiddleware);
@@ -74,7 +75,7 @@ dashRouter.post("/apikeys", async (req, res) => {
     return res.status(403).json({ error: `Limite de ${limit} API keys pour votre plan` });
   }
 
-  const rawKey = `sk_live_${crypto.randomBytes(24).toString("base64url")}`;
+  const rawKey = `mfk_live_${crypto.randomBytes(24).toString("base64url")}`;
   const hashed = hashKey(rawKey);
   const prefix = rawKey.slice(0, 16) + "...";
 
@@ -84,6 +85,31 @@ dashRouter.post("/apikeys", async (req, res) => {
 
   // Retourne la clé brute UNE SEULE FOIS
   res.json({ ...apiKey, rawKey });
+});
+
+// PATCH /dashboard/apikeys/:id — Activer/Désactiver
+dashRouter.patch("/apikeys/:id", async (req, res) => {
+  const { id } = req.params;
+  const { isActive } = req.body;
+
+  try {
+    const apiKey = await prisma.apiKey.findFirst({
+      where: { id, userId: req.user.id },
+    });
+
+    if (!apiKey) {
+      return res.status(404).json({ error: "Clé non trouvée" });
+    }
+
+    const updated = await prisma.apiKey.update({
+      where: { id },
+      data: { isActive },
+    });
+
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: "Erreur lors de la modification" });
+  }
 });
 
 // PUT /dashboard/apikeys/:id

@@ -5,6 +5,12 @@ import { T, styles } from "../../theme";
 import StatCard  from "../../components/StatCard";
 import QuotaBar  from "../../components/QuotaBar";
 import Badge     from "../../components/Badge";
+import {
+  FiSend,
+  FiAlertTriangle,
+  FiFileText,
+  FiKey
+} from "react-icons/fi";
 
 // Mock logs pour l'aperçu rapide
 const mockLogs = [
@@ -22,33 +28,69 @@ export default function Overview() {
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <div>
         {/* <h1 style={{ color: T.text, fontSize: 22, fontWeight: 700, margin: 0 }}>Dashboard</h1> */}
-        <p style={{ color: T.textSub, fontSize: 20, margin: "4px 0 0" }}>Bienvenue 👋</p>
+        <p style={{ color: T.textSub, fontSize: "1rem", margin: "4px 0 0" }}>Bienvenue 👋</p>
       </div>
 
       {/* Stat Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(185px,1fr))", gap: 14 }}>
-        <StatCard title="Envoyés"   value="1 842" sub="+12% ce mois"        icon="📤" color={T.primary} />
-        <StatCard title="Échoués"   value="23"    sub="1.2% du total"       icon="⚠️" color={T.danger} />
-        <StatCard title="Templates" value="4"     sub="3 perso · 1 system"  icon="📝" color="#8b5cf6" />
-        <StatCard title="API Keys"  value="3"     sub="2 actives"           icon="🔑" color="#06b6d4" />
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit,minmax(185px,1fr))",
+          gap: 14
+        }}
+      >
+        <StatCard
+          title="Envoyés"
+          value="1 842"
+          sub="+12% ce mois"
+          icon={FiSend}
+          color={T.primary}
+        />
+
+        <StatCard
+          title="Échoués"
+          value="23"
+          sub="1.2% du total"
+          icon={FiAlertTriangle}
+          color={T.danger}
+        />
+
+        <StatCard
+          title="Templates"
+          value="4"
+          sub="3 perso · 1 system"
+          icon={FiFileText}
+          color="#8b5cf6"
+        />
+
+        <StatCard
+          title="API Keys"
+          value="3"
+          sub="2 actives"
+          icon={FiKey}
+          color="#06b6d4"
+        />
       </div>
+
 
       {/* Quota */}
       <QuotaBar used={1842} total={5000} />
 
       {/* Activité récente */}
       <div style={{ ...styles.card, padding: 20 }}>
-        <p style={{ color: T.text, fontSize: 15, fontWeight: 600, margin: "0 0 14px" }}>Activité récente</p>
+        <p style={{ color: T.text, fontSize: "1rem", fontWeight: 600, margin: "0 0 14px" }}>Activité récente</p>
         {mockLogs.map((l) => (
           <div key={l.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: `1px solid ${T.border}` }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <Badge status={l.status} />
+              <div style={{minWidth:80}}>
+                <Badge status={l.status} />
+              </div>
               <div>
-                <p style={{ color: T.text, fontSize: 12, margin: 0, fontWeight: 500 }}>{l.subject}</p>
-                <p style={{ color: T.textMuted, fontSize: 10, margin: "2px 0 0" }}>{l.to}</p>
+                <p style={{ color: T.text, fontSize: 13, margin: 0, fontWeight: 500 }}>{l.subject}</p>
+                <p style={{ color: T.textMuted, fontSize: 12, margin: "2px 0 0" }}>{l.to}</p>
               </div>
             </div>
-            <span style={{ color: T.textMuted, fontSize: 10 }}>
+            <span style={{ color: T.textMuted, fontSize: 12 }}>
               {l.date.toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
             </span>
           </div>
