@@ -14,24 +14,63 @@ const dashRouter = express.Router();
 dashRouter.use(authMiddleware);
 
 // ─── GET /dashboard/stats ─────────────────────────────
+// GET /dashboard/stats
 dashRouter.get("/stats", async (req, res) => {
-  const { id } = req.user;
+  const { user } = req;
 
-  const [totalSent, totalFailed, recentEmails, apiKeys] = await Promise.all([
-    prisma.emailLog.count({ where: { userId: id, status: "SENT" } }),
-    prisma.emailLog.count({ where: { userId: id, status: "FAILED" } }),
-    prisma.emailLog.findMany({
-      where: { userId: id },
-      orderBy: { createdAt: "desc" },
-      take: 20,
-      select: { id: true, to: true, subject: true, status: true, createdAt: true, isBulk: true },
-    }),
-    prisma.apiKey.findMany({ where: { userId: id } }),
-  ]);
+  try {
+    const [sent, failed, templates, templatesPersonal, templatesSystem, apiKeys, apiKeysActive, sentThisMonth] = await Promise.all([
+      // Emails envoyés (total)
+      prisma.emailLog.count({ where: { userId: user.id, status: "SENT" } }),
+      
+      // Emails échoués (total)
+      prisma.emailLog.count({ where: { userId: user.id, status: { in: ["FAILED", "BOUNCED"] } } }),
+      
+      // Templates (total)
+      prisma.template.count({ where: { OR: [{ userId: user.id }, { type: "SYSTEM" }] } }),
+      
+      // Templates personnels
+      prisma.template.count({ where: { userId: user.id, type: "PERSONAL" } }),
+      
+      // Templates système
+      prisma.template.count({ where: { type: "SYSTEM" } }),
+      
+      // API Keys (total)
+      prisma.apiKey.count({ where: { userId: user.id } }),
+      
+      // API Keys actives
+      prisma.apiKey.count({ where: { userId: user.id, isActive: true } }),
+      
+      // Emails envoyés ce mois
+      prisma.emailLog.count({
+        where: {
+          userId: user.id,
+          status: "SENT",
+          createdAt: {
+            gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+          },
+        },
+      }),
+    ]);
 
-  const quota = checkQuota(req.user);
+    // Quota selon le plan
+    const quotas = { FREE: 100, PRO: 5000, BUSINESS: 50000 };
+    const quota = quotas[user.plan] || 100;
 
-  res.json({ totalSent, totalFailed, recentEmails, apiKeys: apiKeys.length, quota });
+    res.json({
+      sent,
+      failed,
+      templates,
+      templatesPersonal,
+      templatesSystem,
+      apiKeys,
+      apiKeysActive,
+      sentThisMonth,
+      quota,
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Erreur lors du chargement des stats" });
+  }
 });
 
 // ─── GET /dashboard/logs ──────────────────────────────
@@ -262,6 +301,147 @@ dashRouter.post("/send", async (req, res) => {
       },
     });
     res.status(500).json({ error: "Échec de l'envoi", details: e.message });
+  }
+});
+
+// GET /dashboard/templates
+dashRouter.get("/templates", async (req, res) => {
+  try {
+    const templates = await prisma.template.findMany({
+      where: {
+        OR: [
+          { userId: req.user.id },
+          { type: "SYSTEM" },
+        ],
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    res.json(templates);
+  } catch (err) {
+    res.status(500).json({ error: "Erreur lors du chargement" });
+  }
+});
+
+// POST /dashboard/templates
+dashRouter.post("/templates", async (req, res) => {
+  const { name, subject, html } = req.body;
+  
+  if (!name || !subject || !html) {
+    return res.status(400).json({ error: "Tous les champs sont requis" });
+  }
+
+  try {
+    const template = await prisma.template.create({
+      data: {
+        userId: req.user.id,
+        name,
+        subject,
+        htmlBody: html,
+        type: "PERSONAL",
+      },
+    });
+    res.json(template);
+  } catch (err) {
+    res.status(500).json({ error: "Erreur lors de la création" });
+  }
+});
+
+// PUT /dashboard/templates/:id
+dashRouter.put("/templates/:id", async (req, res) => {
+  const { id } = req.params;
+  const { name, subject, html } = req.body;
+
+  try {
+    const existing = await prisma.template.findFirst({
+      where: { id, userId: req.user.id },
+    });
+
+    if (!existing) {
+      return res.status(404).json({ error: "Template non trouvé" });
+    }
+
+    if (existing.type === "SYSTEM") {
+      return res.status(403).json({ error: "Les templates système ne peuvent pas être modifiés" });
+    }
+
+    const updated = await prisma.template.update({
+      where: { id },
+      data: { name, subject, htmlBody: html },
+    });
+
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: "Erreur lors de la modification" });
+  }
+});
+
+// DELETE /dashboard/templates/:id
+dashRouter.delete("/templates/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const existing = await prisma.template.findFirst({
+      where: { id, userId: req.user.id },
+    });
+
+    if (!existing) {
+      return res.status(404).json({ error: "Template non trouvé" });
+    }
+
+    if (existing.type === "SYSTEM") {
+      return res.status(403).json({ error: "Les templates système ne peuvent pas être supprimés" });
+    }
+
+    await prisma.template.delete({ where: { id } });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Erreur lors de la suppression" });
+  }
+});
+
+// GET /dashboard/settings
+dashRouter.get("/settings", async (req, res) => {
+  // Pour l'instant retourne des valeurs vides, tu peux stocker ces settings dans la DB plus tard
+  res.json({
+    smtp: { host: "", port: "", user: "", pass: "" },
+    notifications: { failed: true, bounced: true, weekly: false },
+  });
+});
+
+// PUT /dashboard/profile
+dashRouter.put("/profile", async (req, res) => {
+  const { name } = req.body;
+  try {
+    const updated = await prisma.user.update({
+      where: { id: req.user.id },
+      data: { name },
+    });
+    res.json({ success: true, user: updated });
+  } catch (err) {
+    res.status(500).json({ error: "Erreur lors de la mise à jour" });
+  }
+});
+
+// PUT /dashboard/smtp
+dashRouter.put("/smtp", async (req, res) => {
+  // Stocker dans DB ou fichier de config selon ton besoin
+  res.json({ success: true });
+});
+
+// PUT /dashboard/notifications
+dashRouter.put("/notifications", async (req, res) => {
+  // Stocker dans DB selon ton besoin
+  res.json({ success: true });
+});
+
+// DELETE /dashboard/account
+dashRouter.delete("/account", async (req, res) => {
+  try {
+    // Supprimer toutes les données liées
+    await prisma.user.delete({ where: { id: req.user.id } });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Erreur lors de la suppression" });
   }
 });
 

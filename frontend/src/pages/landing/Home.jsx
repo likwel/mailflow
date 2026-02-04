@@ -11,16 +11,17 @@ import {
   FiBell
 } from "react-icons/fi";
 
-const CODE = `const res = await fetch("https://api.mailflow.dev/api/v1/send", {
+const CODE = `const res = await fetch("https://api.mailflow.dev/api/v1/send-mail", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
-    "X-API-Key": "sk_live_votre_cle"
+    "X-API-Key": "mfk_live_votre_cle"
   },
   body: JSON.stringify({
     to: ["client@email.com"],
     subject: "Bienvenue {{name}} !",
     html: "<h1>Bonjour {{name}}</h1><p>Bienvenue !</p>",
+    templateId : "tmpl_abc123",
     variables: { name: "Jean" }
   })
 });

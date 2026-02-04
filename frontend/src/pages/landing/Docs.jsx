@@ -17,7 +17,7 @@ const DOCS = [
     title: "Authentication",
     icon: FiKey,
     desc: "Passez votre API Key via le header X-API-Key ou comme Bearer token dans Authorization. La clé est générée une seule fois dans votre dashboard.",
-    code: 'fetch("/api/v1/send", {\n  headers: { "X-API-Key": "sk_live_..." }\n})'
+    code: 'fetch("/api/v1/send", {\n  headers: { "X-API-Key": "mfk_live_..." }\n})'
   },
   {
     title: "Send Email",

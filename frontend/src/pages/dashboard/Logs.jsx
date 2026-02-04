@@ -27,7 +27,7 @@ export default function Logs() {
     setLoading(true);
     setError("");
     try {
-      const params = { page, limit: 20 };
+      const params = { page, limit: 10 };
       if (filter !== "ALL") params.status = filter;
       
       const res = await client.get("/dashboard/logs", { params });
@@ -71,8 +71,8 @@ export default function Logs() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       <div>
-        <p style={{ color: T.textSub, fontSize: "1rem", margin: "4px 0 0" }}>
-          Historique complet de vos envois · {total} email{total > 1 ? "s" : ""}
+        <p style={{ color: T.textSub, fontSize: 20, margin: "4px 0 0" }}>
+          Historique complet de vos envois · <span style={{color: '#6366f1', fontWeight : 600}}>{total}</span> email{total > 1 ? "s" : ""}
         </p>
       </div>
 
@@ -84,8 +84,8 @@ export default function Logs() {
       )}
 
       {/* Filtres */}
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-        <div style={{ display: "flex", height : "h-full", gap: 3, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 8, padding: 3 }}>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "stretch" }}>
+        <div style={{ display: "flex", height : "h-full", gap: 3, background: "white", border: `1px solid ${T.border}`, borderRadius: 8, padding: 3 }}>
           {["ALL","SENT","FAILED","BOUNCED"].map((st) => (
             <button 
               key={st} 
@@ -139,8 +139,8 @@ export default function Logs() {
       {/* Table */}
       <div style={{ ...styles.card, overflow: "hidden" }}>
         {/* Header */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 190px 95px 130px 80px", padding: "10px 18px", background: T.bg, borderBottom: `1px solid ${T.border}` }}>
-          {["Sujet","À","Statut","Date","Actions"].map((h) => (
+        <div style={{ display: "grid", gridTemplateColumns: "95px 1fr 190px 130px 80px", padding: "10px 18px", background: T.bg, borderBottom: `1px solid ${T.border}` }}>
+          {["Statut", "Sujet","À","Date","Actions"].map((h) => (
             <span key={h} style={{ color: T.textSub, fontSize: 12, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600 }}>{h}</span>
           ))}
         </div>
@@ -152,17 +152,17 @@ export default function Logs() {
 
         {/* Rows */}
         {!loading && data.map((l) => (
-          <div key={l.id} style={{ display: "grid", gridTemplateColumns: "1fr 190px 95px 130px 80px", padding: "11px 18px", borderBottom: `1px solid ${T.border}`, alignItems: "center" }}>
+          <div key={l.id} style={{ display: "grid", gridTemplateColumns: "95px 1fr 190px 130px 80px", padding: "11px 18px", borderBottom: `1px solid ${T.border}`, alignItems: "center" }}>
+            <Badge status={l.status} />
             <div>
-              <span style={{ color: T.text, fontSize: 15, fontWeight: 500 }}>{l.subject}</span>
-              {l.isBulk && <span style={{ background: T.primaryLight, color: T.primary, fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 10, marginLeft: 6 }}>BULK</span>}
-              {l.error && <p style={{ color: T.danger, fontSize: 11, margin: "2px 0 0" }}>{l.error}</p>}
+              <span style={{ color: T.text, fontSize: 13, fontWeight: 500 }}>{l.subject}</span>
+              {l.isBulk && <span style={{ background: T.primaryLight, color: T.primary, fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 10, marginLeft: 6 }}>Campagne</span>}
+              {l.error && <p style={{ color: T.danger, fontSize: 11, margin: "2px 0 0" }}>Erreur : {l.error}</p>}
             </div>
             <span style={{ color: T.textSub, fontSize: 12 }}>
               {l.to[0]}
-              {l.to.length > 1 && <span style={{ fontSize: 10, color: T.textMuted }}> +{l.to.length - 1}</span>}
+              {l.to.length > 1 && <span style={{ fontSize: 10, color: '#6366f1', fontWeight : 600 }}> +{l.to.length - 1}</span>}
             </span>
-            <Badge status={l.status} />
             <span style={{ color: T.textMuted, fontSize: 12 }}>
               {new Date(l.sentAt || l.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
             </span>

@@ -87,6 +87,7 @@ router.get("/me", async (req, res) => {
       avatar: user.avatar,
       plan: user.plan,
       role: user.role,
+      emailsUsed: user.emailsUsed,
     });
   } catch {
     res.status(401).json({ error: "Token invalide" });

@@ -1,10 +1,13 @@
 // =====================================================
 // src/pages/dashboard/Overview.jsx
 // =====================================================
+import { useState, useEffect } from "react";
+import { useAuth } from "../../hooks/useAuth";
 import { T, styles } from "../../theme";
 import StatCard  from "../../components/StatCard";
 import QuotaBar  from "../../components/QuotaBar";
 import Badge     from "../../components/Badge";
+import client from "../../api/client";
 import {
   FiSend,
   FiAlertTriangle,
@@ -13,7 +16,7 @@ import {
 } from "react-icons/fi";
 
 // Mock logs pour l'aperçu rapide
-const mockLogs = [
+const mockLogs_old = [
   { id: 1, to: "user1@ex.com", subject: "Bienvenue !",          status: "SENT",   date: new Date(Date.now() - 1e6) },
   { id: 2, to: "user2@ex.com", subject: "Réinitialisation MP",  status: "SENT",   date: new Date(Date.now() - 3e6) },
   { id: 3, to: "user3@ex.com", subject: "Commande confirmée",   status: "FAILED", date: new Date(Date.now() - 6e6) },
@@ -24,11 +27,82 @@ const mockLogs = [
 ];
 
 export default function Overview() {
+
+  const { user } = useAuth();
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [logs, setLogs] = useState([]);
+  const [filter, setFilter] = useState("ALL");
+  const [pageActivity, setPageActivity] = useState(1);
+
+  useEffect(() => {
+    fetchStats();
+    fetchLogs();
+  }, [pageActivity, filter]);
+
+  async function fetchStats() {
+    setLoading(true);
+    try {
+      const res = await client.get("/dashboard/stats");
+      setStats(res.data);
+    } catch (err) {
+      console.error("Erreur stats:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function fetchLogs() {
+    setLoading(true);
+    try {
+      const params = { pageActivity, limit: 10 };
+      if (filter !== "ALL") params.status = filter;
+      const res = await client.get("/dashboard/logs", { params });
+
+      setLogs(res.data.logs);
+    } catch (err) {
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const formatMailLogs = (logs) => {
+    return logs.map((log, index) => ({
+      id: index + 1, // ou log.id si tu veux garder l'id réel
+      to: log.to?.[0] ?? "—",
+      subject: log.subject,
+      status: log.status,
+      date: new Date(log.sentAt || log.createdAt),
+      error: log.error ?? null,
+    }));
+  };
+
+
+  if (loading) {
+    return (
+      <div style={{ padding: 40, textAlign: "center" }}>
+        <p style={{ color: T.textSub, fontSize: 14 }}>Chargement des statistiques...</p>
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return (
+      <div style={{ padding: 40, textAlign: "center" }}>
+        <p style={{ color: T.danger, fontSize: 14 }}>Erreur lors du chargement</p>
+      </div>
+    );
+  }
+
+  const failedPercent = stats.sent > 0 ? ((stats.failed / (stats.sent + stats.failed)) * 100).toFixed(1) : 0;
+
+  const mockLogs = formatMailLogs(logs);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <div>
         {/* <h1 style={{ color: T.text, fontSize: 22, fontWeight: 700, margin: 0 }}>Dashboard</h1> */}
-        <p style={{ color: T.textSub, fontSize: "1rem", margin: "4px 0 0" }}>Bienvenue 👋</p>
+        <p style={{ color: T.textSub, fontSize: "1rem", margin: "4px 0 0" }}>Bienvenue, {user?.name || "utilisateur"}👋</p>
       </div>
 
       {/* Stat Cards */}
@@ -41,32 +115,32 @@ export default function Overview() {
       >
         <StatCard
           title="Envoyés"
-          value="1 842"
-          sub="+12% ce mois"
+          value={stats.sent.toLocaleString()}
+          sub={stats.sentThisMonth > 0 ? `${stats.sentThisMonth} ce mois` : "Aucun ce mois"}
           icon={FiSend}
           color={T.primary}
         />
 
         <StatCard
           title="Échoués"
-          value="23"
-          sub="1.2% du total"
+          value={stats.failed.toLocaleString()}
+          sub={`${failedPercent}% du total`}
           icon={FiAlertTriangle}
           color={T.danger}
         />
 
         <StatCard
           title="Templates"
-          value="4"
-          sub="3 perso · 1 system"
+          value={stats.templates.toLocaleString()}
+          sub={`${stats.templatesPersonal} perso · ${stats.templatesSystem} system`}
           icon={FiFileText}
           color="#8b5cf6"
         />
 
         <StatCard
           title="API Keys"
-          value="3"
-          sub="2 actives"
+          value={stats.apiKeys.toLocaleString()}
+          sub={`${stats.apiKeysActive} active${stats.apiKeysActive > 1 ? "s" : ""}`}
           icon={FiKey}
           color="#06b6d4"
         />
@@ -74,7 +148,8 @@ export default function Overview() {
 
 
       {/* Quota */}
-      <QuotaBar used={1842} total={5000} />
+      {/* <QuotaBar used={1842} total={5000} /> */}
+      <QuotaBar used={user.emailsUsed} total={stats.quota} />
 
       {/* Activité récente */}
       <div style={{ ...styles.card, padding: 20 }}>

@@ -28,6 +28,53 @@ enum TemplateType {
   SYSTEM     // fourni par la plateforme
 }
 
+
+// ─── Plan (limites par tier) ─────────────────────────
+model Plan {
+  id               String   @id @default(cuid())
+  name             String   @unique // FREE, PRO, BUSINESS, CUSTOM
+  displayName      String   // "Gratuit", "Pro", "Business", "Personnalisé"
+  price            Float    @default(0) // Prix mensuel en €
+  emailsPerMonth   Int      @default(100)
+  maxBulkSend      Int      @default(10) // Nb max par envoi en lot
+  apiKeysMax       Int      @default(2)
+  templatesMax     Int      @default(5)
+  features         String[] // ["Support prioritaire", "Templates illimités", etc.]
+  isCustom         Boolean  @default(false)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  users            User[]
+  customPlans      CustomPlan[]
+}
+
+// ─── Plan personnalisé ────────────────────────────────
+model CustomPlan {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  basePlanId       String   // Plan de base (PRO, BUSINESS)
+  emailsPerMonth   Int
+  maxBulkSend      Int
+  price            Float    // Prix calculé
+  features         String[]
+  status           PlanStatus @default(PENDING)
+  requestedAt      DateTime @default(now())
+  approvedAt       DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  basePlan         Plan     @relation(fields: [basePlanId], references: [id])
+}
+
+enum PlanStatus {
+  PENDING    // En attente d'approbation
+  APPROVED   // Approuvé
+  REJECTED   // Rejeté
+  ACTIVE     // Actif
+}
+
 // ─── User ─────────────────────────────────────────────
 
 model User {
@@ -38,25 +85,19 @@ model User {
   googleId      String?  @unique
   avatar        String?
   role          Role     @default(USER)
-  plan          Plan     @default(FREE)
+  planId        String?  // ← Remplace l'enum Plan
   emailsUsed    Int      @default(0)
   emailsReset   DateTime @default(now()) // date du dernier reset mensuel
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   // Relations
+  plan          Plan?    @relation(fields: [planId], references: [id])
+  customPlan    CustomPlan?
   apiKeys       ApiKey[]
   templates     Template[]
   emails        EmailLog[]
   sessions      Session[]
-}
-
-// ─── Plan (limites par tier) ─────────────────────────
-
-enum Plan {
-  FREE      // 100 emails/mois
-  PRO       // 5 000 emails/mois
-  BUSINESS  // 50 000 emails/mois
 }
 
 // ─── Session (OAuth) ──────────────────────────────────

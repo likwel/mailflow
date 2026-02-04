@@ -1,7 +1,7 @@
 // =====================================================
 // src/pages/dashboard/Dashboard.jsx
 // =====================================================
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../../hooks/useAuth";
 import { T } from "../../theme";
 import Sidebar from "../../components/Sidebar";
@@ -18,15 +18,37 @@ const PAGES = { overview: Overview, logs: Logs, apikeys: ApiKeys, templates: Tem
 export default function Dashboard() {
   const { user } = useAuth();
   const [page, setPage] = useState("overview");
+  const [isMobile, setIsMobile] = useState(false);
+
   const Page = PAGES[page] || Overview;
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
 
   return (
     <div style={{ minHeight: "100vh", background: T.bg, fontFamily: "'Inter',-apple-system,sans-serif", display: "flex" }}>
       <Sidebar active={page} onNavigate={setPage} user={user} />
-      <Header activePage={page} />  {/* ← ajouter */}
-      <main style={{ marginLeft: 220, flex: 1, padding: "32px 40px", maxWidth: "100%", marginTop:50 }}>
-        <Page />
-      </main>
+      <div style={{ 
+        flex: 1, 
+        marginLeft: isMobile ? 0 : 220,
+        display: "flex",
+        flexDirection: "column",
+      }}>
+        <Header activePage={page} />
+        <main style={{ 
+          flex: 1,
+          padding: isMobile ? "20px 16px 32px" : "20px 40px",
+          maxWidth: "100%",
+          marginTop: 64, // hauteur du header fixe
+        }}>
+          <Page />
+        </main>
+      </div>
     </div>
   );
 }
