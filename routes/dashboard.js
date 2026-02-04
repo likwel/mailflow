@@ -4,7 +4,7 @@
 const express = require("express");
 const { authMiddleware } = require("../middleware/auth");
 const { hashKey } = require("../middleware/apiKeyAuth");
-const { PLAN_LIMITS, checkQuota } = require("../utils/planLimits");
+const { checkQuota, getPlanLimits } = require("../utils/planLimits");
 const transporter = require("../config/smtp");
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
@@ -107,7 +107,8 @@ dashRouter.get("/apikeys", async (req, res) => {
 dashRouter.post("/apikeys", async (req, res) => {
   const { name } = req.body;
   const { user } = req;
-  const limit = PLAN_LIMITS[user.plan].apiKeysMax;
+  const PLAN_LIMITS = await getPlanLimits(user.id)
+  const limit = PLAN_LIMITS.apiKeysMax;
 
   const count = await prisma.apiKey.count({ where: { userId: user.id } });
   if (count >= limit) {
@@ -176,7 +177,7 @@ dashRouter.post("/send-bulk", async (req, res) => {
     return res.status(400).json({ error: "Liste de destinataires requise" });
   }
 
-  const quota = checkQuota(user);
+  const quota = await checkQuota(user);
   if (user.emailsUsed + recipients.length > quota.limit.emailsPerMonth) {
     return res.status(429).json({ error: "Quota dépassé", remaining: quota.remaining });
   }
@@ -187,7 +188,7 @@ dashRouter.post("/send-bulk", async (req, res) => {
   for (const recipient of recipients) {
     try {
       await transporter.sendMail({
-        from: process.env.SMTP_FROM,
+        from: (user.name ? user.name : 'MailFlow') + '' + process.env.SMTP_FROM,
         to: recipient,
         subject,
         html,
@@ -247,7 +248,7 @@ dashRouter.post("/send", async (req, res) => {
     return res.status(400).json({ error: "Corps de l'email requis" });
 
   // Check quota
-  const quota = checkQuota(user);
+  const quota = await checkQuota(user);
   if (user.emailsUsed + to.length > quota.limit) {
     return res.status(429).json({ error: "Quota mensuel dépassé", used: user.emailsUsed, limit: quota.limit });
   }
@@ -258,7 +259,7 @@ dashRouter.post("/send", async (req, res) => {
     const logs = [];
     for (const recipient of to) {
       await transporter.sendMail({
-        from: process.env.SMTP_FROM || process.env.SMTP_USER,
+        from: (user.name ? user.name : 'MailFlow') + '' + process.env.SMTP_FROM,
         to: recipient,
         subject,
         html,
@@ -325,12 +326,30 @@ dashRouter.get("/templates", async (req, res) => {
 // POST /dashboard/templates
 dashRouter.post("/templates", async (req, res) => {
   const { name, subject, html } = req.body;
+
+  const { user } = req;
+  const PLAN_LIMITS = await getPlanLimits(user.id)
+  const limit = PLAN_LIMITS.apiKeysMax;
   
   if (!name || !subject || !html) {
     return res.status(400).json({ error: "Tous les champs sont requis" });
   }
 
   try {
+
+    const templatesCount = await prisma.template.count({
+      where: {
+        AND: [
+          { userId: req.user.id },
+          { type: "PERSONAL" },
+        ],
+      },
+    });
+
+    if(templatesCount >= limit){
+      return res.status(403).json({ error: `Limité de ${limit} templates pour votre plan actuel` });
+    }
+
     const template = await prisma.template.create({
       data: {
         userId: req.user.id,

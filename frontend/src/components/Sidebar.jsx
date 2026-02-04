@@ -15,6 +15,8 @@ import {
   FiX,
 } from "react-icons/fi";
 import { FaLayerGroup } from "react-icons/fa";
+import client from "../api/client";
+import { Link } from "react-router-dom";
 
 const NAV_ITEMS = [
   { key: "overview", icon: FiHome, label: "Vue d’ensemble" },
@@ -29,6 +31,7 @@ export default function Sidebar({ active, onNavigate, user }) {
   const { logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [plan, setPlan] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -37,6 +40,7 @@ export default function Sidebar({ active, onNavigate, user }) {
     };
     
     checkMobile();
+    getMyPlan()
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
@@ -46,6 +50,17 @@ export default function Sidebar({ active, onNavigate, user }) {
     onNavigate(key);
     if (isMobile) setIsOpen(false);
   };
+
+  async function getMyPlan() {
+    try {
+      const res = await client.get("/plans/me");
+      setPlan(res.data);
+    } catch (err) {
+      // setError(err.response?.data?.error || "Erreur lors du chargement des logs");
+    } finally {
+      // setLoading(false);
+    }
+  }
 
   return (
     <>
@@ -120,31 +135,33 @@ export default function Sidebar({ active, onNavigate, user }) {
             marginTop: isMobile ? 60 : 0,
           }}
         >
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
-              background: T.primary,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#fff",
-              fontWeight: 700,
-              fontSize: 16,
-              overflow: "hidden",
-            }}
-          >
-            <img
-              src="/logo.png"
-              alt="Logo"
+          <Link to="/">
+            <div
               style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                background: T.primary,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#fff",
+                fontWeight: 700,
+                fontSize: 16,
+                overflow: "hidden",
               }}
-            />
-          </div>
+            >
+              <img
+                src="/logo.png"
+                alt="Logo"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                }}
+              />
+            </div>
+          </Link>
           <span
             style={{
               color: T.text,
@@ -257,7 +274,7 @@ export default function Sidebar({ active, onNavigate, user }) {
                   fontWeight: 700,
                 }}
               >
-                Plan {user.plan}
+                Plan {plan ? plan.name : 'Gratuit'}
               </p>
             </div>
           </div>

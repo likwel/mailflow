@@ -121,7 +121,7 @@ export default function BulkSend() {
     setLoading(true);
     
     try {
-      const res = await client.post("/dashboard/send", {
+      const res = await client.post("/dashboard/send/interne", {
         to: emails,
         subject,
         html,

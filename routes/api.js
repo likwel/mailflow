@@ -19,7 +19,7 @@ apiRouter.use("/send", rateLimiter(10, 60 * 1000));
 apiRouter.use("/send", apiKeyAuth);
 
 // ─── POST /api/v1/send ────────────────────────────────
-apiRouter.post("/send", async (req, res) => {
+apiRouter.post("/send/interne", async (req, res) => {
   const { user } = req;
   const { to, cc, bcc, subject, html, text, templateId, variables, name, email } = req.body;
 
@@ -32,7 +32,7 @@ apiRouter.post("/send", async (req, res) => {
   }
 
   // Vérifie le quota
-  const quota = checkQuota(user);
+  const quota = await checkQuota(user);
   let updatedUser = user;
 
   if (quota.needsReset) {
@@ -155,8 +155,8 @@ apiRouter.post("/send", async (req, res) => {
 });
 
 
-// ─── POST /api/v1/send-mail ────────────────────────────────
-apiRouter.post("/send-mail", cors({
+// ─── POST /api/v1/send ────────────────────────────────
+apiRouter.post("/send", cors({
   methods: ["POST", "OPTIONS"],
   allowedHeaders: ["Content-Type", "X-API-Key"],
   credentials: true,
@@ -173,6 +173,8 @@ apiRouter.post("/send-mail", cors({
   });
   if (!keyRecord) return res.status(401).json({ error: "Clé API invalide" });
 
+  if (keyRecord && !keyRecord.isActive) return res.status(401).json({ error: "Clé API inactive" });
+
   const user = keyRecord.user;
   if (!user) return res.status(401).json({ error: "Utilisateur invalide" });
 
@@ -185,7 +187,7 @@ apiRouter.post("/send-mail", cors({
 
   // Vérification du quota
   let updatedUser = user;
-  const quota = checkQuota(user);
+  const quota = await checkQuota(user);
   if (quota.needsReset) {
     updatedUser = await prisma.user.update({
       where: { id: user.id },

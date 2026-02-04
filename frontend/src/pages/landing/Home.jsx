@@ -11,7 +11,7 @@ import {
   FiBell
 } from "react-icons/fi";
 
-const CODE = `const res = await fetch("https://api.mailflow.dev/api/v1/send-mail", {
+const CODE = `const res = await fetch("https://api.mailflow.dev/api/v1/send", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
@@ -19,6 +19,7 @@ const CODE = `const res = await fetch("https://api.mailflow.dev/api/v1/send-mail
   },
   body: JSON.stringify({
     to: ["client@email.com"],
+    from : "John Blots",
     subject: "Bienvenue {{name}} !",
     html: "<h1>Bonjour {{name}}</h1><p>Bienvenue !</p>",
     templateId : "tmpl_abc123",
@@ -119,7 +120,7 @@ export default function Home() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 18 }}>
           {FEATURES.map((f) => (
             <div key={f.title} style={{ ...styles.card, padding: 26 }}>
-              <div style={{ fontSize: 26, marginBottom: 10 }}><f.icon fontSize={40} color="#34d399"/></div>
+              <div style={{ fontSize: 26, marginBottom: 10 }}><f.icon fontSize={40} color="#6366f1"/></div>
               <h3 style={{ color: T.text, fontSize: 15, fontWeight: 600, margin: "0 0 6px" }}>{f.title}</h3>
               <p style={{ color: T.textSub, fontSize: 13, lineHeight: 1.6, margin: 0 }}>{f.desc}</p>
             </div>

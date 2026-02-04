@@ -46,8 +46,9 @@ const PLAN_LIMITS = {
 };
 
 
-const checkQuota = (user) => {
-  const limit = PLAN_LIMITS[user?user.plan : 'FREE'];
+const checkQuota = async (user) => {
+  const limit = await getPlanLimits(user.id)
+  // const limit = PLAN_LIMITS[user?user.plan : 'FREE'];
   const now = new Date();
 
   // Reset mensuel

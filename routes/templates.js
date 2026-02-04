@@ -4,10 +4,12 @@
 const express = require("express");
 const templateRouter = express.Router();
 const { authMiddleware } = require("../middleware/auth");
+const { checkQuota, getPlanLimits } = require("../utils/planLimits");
 templateRouter.use(authMiddleware);
 
 // GET
 templateRouter.get("/", async (req, res) => {
+
   const templates = await prisma.template.findMany({
     where: { OR: [{ userId: req.user.id }, { type: "SYSTEM" }] },
     orderBy: { createdAt: "desc" },
@@ -18,7 +20,11 @@ templateRouter.get("/", async (req, res) => {
 // POST
 templateRouter.post("/", async (req, res) => {
   const { name, subject, htmlBody, textBody } = req.body;
-  const limit = PLAN_LIMITS[req.user.plan].templatesMax;
+  const { user } = req.user;
+
+  const PLAN_LIMITS = await getPlanLimits(user.id)
+
+  const limit = PLAN_LIMITS.templatesMax;
 
   const count = await prisma.template.count({ where: { userId: req.user.id } });
   if (count >= limit) {

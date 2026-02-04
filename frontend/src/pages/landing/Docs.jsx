@@ -69,7 +69,7 @@ export default function Docs() {
                 onClick={() => setOpen(open === i ? -1 : i)}
                 style={{ width: "100%", background: open === i ? T.primaryLight : "#fff", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, padding: "16px 20px", textAlign: "left" }}
               >
-                <span style={{ fontSize: 20 }}><d.icon fontSize={25} color="#34d399"/></span>
+                <span style={{ fontSize: 20 }}><d.icon fontSize={25} color="#6366f1"/></span>
                 <span style={{ color: open === i ? T.primary : T.text, fontSize: 15, fontWeight: 600, flex: 1 }}>{d.title}</span>
                 <span style={{ color: T.textMuted, fontSize: 16, transform: open === i ? "rotate(180deg)" : "none", transition: "transform 0.2s", display: "inline-block" }}>▼</span>
               </button>

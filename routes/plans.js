@@ -2,9 +2,29 @@ const express = require("express");
 const router = express.Router();
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
-// const { authMiddleware } = require("../middleware/authMiddleware");
+const { authMiddleware } = require("../middleware/auth");
 
-// router.use(authMiddleware);
+router.use(authMiddleware);
+
+// GET /plans - Liste tous les plans disponibles
+router.get("/me", async (req, res) => {
+  try {
+    
+    const plan = await prisma.plan.findFirst({
+      where: {
+        users: {
+          some: {
+            id: req.user.id
+          }
+        }
+      }
+    });
+
+    res.json(plan);
+  } catch (err) {
+    res.status(500).json({ error: "Erreur lors du chargement des plans" + err });
+  }
+});
 
 // GET /plans - Liste tous les plans disponibles
 router.get("/", async (req, res) => {

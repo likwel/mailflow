@@ -12,6 +12,7 @@ export default function Settings() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [plan, setPlan] = useState(false);
   
   const [profile, setProfile] = useState({
     name: "",
@@ -39,6 +40,7 @@ export default function Settings() {
       });
     }
     fetchSettings();
+    getMyPlan();
   }, [user]);
 
   async function fetchSettings() {
@@ -50,6 +52,18 @@ export default function Settings() {
       console.error("Erreur chargement settings:", err);
     }
   }
+
+  async function getMyPlan() {
+    try {
+      const res = await client.get("/plans/me");
+      setPlan(res.data);
+    } catch (err) {
+      // setError(err.response?.data?.error || "Erreur lors du chargement des logs");
+    } finally {
+      // setLoading(false);
+    }
+  }
+
 
   async function saveProfile() {
     setLoading(true);
@@ -166,7 +180,7 @@ export default function Settings() {
               padding: "2px 10px", 
               borderRadius: 12 
             }}>
-              Plan {user?.plan || "FREE"}
+              Plan {plan?.name || "FREE"}
             </span>
           </div>
         </div>
