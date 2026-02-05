@@ -100,6 +100,7 @@ model User {
   sessions      Session[]
   contacts  Contact[]
   lists     List[]
+  Workflows Workflow[]
 }
 
 // ─── Session (OAuth) ──────────────────────────────────
@@ -299,4 +300,20 @@ enum RecipientStatus {
   CLICKED
   BOUNCED
   FAILED
+}
+
+model Workflow {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  status      String   @default("draft") // draft, active, inactive
+  trigger     Json     // Config du déclencheur
+  actions     Json     // Actions à effectuer
+  stats       Json?    // Statistiques simples
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
 }

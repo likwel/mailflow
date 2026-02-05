@@ -13,8 +13,9 @@ import Templates from "./Templates";
 import BulkSend  from "./BulkSend";
 import Settings  from "./Settings";
 import Contacts  from "./Contacts";
+import Automations from "./Automations";
 
-const PAGES = { overview: Overview, contacts : Contacts, logs: Logs, apikeys: ApiKeys, templates: Templates, bulk: BulkSend, settings: Settings };
+const PAGES = { overview: Overview, automations : Automations, contacts : Contacts, logs: Logs, apikeys: ApiKeys, templates: Templates, bulk: BulkSend, settings: Settings };
 
 export default function Dashboard() {
   const { user } = useAuth();

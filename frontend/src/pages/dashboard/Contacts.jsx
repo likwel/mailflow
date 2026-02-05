@@ -9,6 +9,9 @@ import {
 import ContactModal from "../../components/ContactModal";
 import ImportContactsModal from "../../components/ImportContactsModal";
 import BulkActionsBar from "../../components/BulkActionsBar";
+import StatCard  from "../../components/StatCard";
+import Badge  from "../../components/Badge";
+import ContactsTable  from "../../components/ContactsTable";
 
 export default function Contacts() {
     const [contacts, setContacts] = useState([]);
@@ -226,142 +229,23 @@ export default function Contacts() {
                 ) : (
                     <>
                         <div style={{ overflowX: "auto" }}>
-                            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                                <thead>
-                                    <tr style={{ background: T.bg, borderBottom: `1px solid ${T.border}` }}>
-                                        <th style={{ ...styles.tableHeader, width: 40 }}>
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedContacts.length === contacts.length}
-                                                onChange={handleSelectAll}
-                                            />
-                                        </th>
-                                        <th style={styles.tableHeader}>Email</th>
-                                        <th style={styles.tableHeader}>Nom</th>
-                                        <th style={styles.tableHeader}>Listes</th>
-                                        <th style={styles.tableHeader}>Tags</th>
-                                        <th style={styles.tableHeader}>Statut</th>
-                                        <th style={styles.tableHeader}>Stats</th>
-                                        <th style={{ ...styles.tableHeader, width: 80 }}>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {contacts.map((contact) => (
-                                        <tr
-                                            key={contact.id}
-                                            style={{ borderBottom: `1px solid ${T.border}` }}
-                                        >
-                                            <td style={styles.tableCell}>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedContacts.includes(contact.id)}
-                                                    onChange={() => handleSelectContact(contact.id)}
-                                                />
-                                            </td>
-                                            <td style={styles.tableCell}>
-                                                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                                    <Mail size={16} color={T.textSub} />
-                                                    <span style={{ fontWeight: 500 }}>{contact.email}</span>
-                                                </div>
-                                            </td>
-                                            <td style={styles.tableCell}>
-                                                {contact.firstName || contact.lastName
-                                                    ? `${contact.firstName || ""} ${contact.lastName || ""}`.trim()
-                                                    : "-"
-                                                }
-                                            </td>
-                                            <td style={styles.tableCell}>
-                                                {contact.lists?.length > 0 ? (
-                                                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                                                        {contact.lists.slice(0, 2).map(({ list }) => (
-                                                            <span
-                                                                key={list.id}
-                                                                style={{
-                                                                    fontSize: 11,
-                                                                    padding: "2px 8px",
-                                                                    background: T.primaryLight,
-                                                                    color: T.primary,
-                                                                    borderRadius: 4
-                                                                }}
-                                                            >
-                                                                {list.name}
-                                                            </span>
-                                                        ))}
-                                                        {contact.lists.length > 2 && (
-                                                            <span style={{ fontSize: 11, color: T.textSub }}>
-                                                                +{contact.lists.length - 2}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                ) : "-"}
-                                            </td>
-                                            <td style={styles.tableCell}>
-                                                {contact.tags?.length > 0 ? (
-                                                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                                                        {contact.tags.slice(0, 2).map(tag => (
-                                                            <span
-                                                                key={tag}
-                                                                style={{
-                                                                    fontSize: 11,
-                                                                    padding: "2px 8px",
-                                                                    background: T.bg,
-                                                                    color: T.textSub,
-                                                                    borderRadius: 4,
-                                                                    border: `1px solid ${T.border}`
-                                                                }}
-                                                            >
-                                                                {tag}
-                                                            </span>
-                                                        ))}
-                                                        {contact.tags.length > 2 && (
-                                                            <span style={{ fontSize: 11, color: T.textSub }}>
-                                                                +{contact.tags.length - 2}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                ) : "-"}
-                                            </td>
-                                            <td style={styles.tableCell}>
-                                                <StatusBadge status={contact.status} />
-                                            </td>
-                                            <td style={styles.tableCell}>
-                                                <div style={{ fontSize: 12, color: T.textSub }}>
-                                                    {contact.emailsSent} envoyés
-                                                    {contact.emailsOpened > 0 && ` • ${contact.emailsOpened} ouverts`}
-                                                </div>
-                                            </td>
-                                            <td style={styles.tableCell}>
-                                                <div style={{ display: "flex", gap: 4 }}>
-                                                    <button
-                                                        onClick={() => {
-                                                            setEditingContact(contact);
-                                                            setShowContactModal(true);
-                                                        }}
-                                                        style={{ ...styles.iconBtn }}
-                                                        title="Modifier"
-                                                    >
-                                                        <Edit size={16} />
-                                                    </button>
-                                                    <button
-                                                        onClick={async () => {
-                                                            if (confirm("Supprimer ce contact ?")) {
-                                                                await client.delete(`/contacts/${contact.id}`);
-                                                                fetchContacts();
-                                                                fetchStats();
-                                                            }
-                                                        }}
-                                                        style={{ ...styles.iconBtn, color: T.danger }}
-                                                        title="Supprimer"
-                                                    >
-                                                        <Trash2 size={16} />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                            <ContactsTable
+                                contacts={contacts}
+                                selectedContacts={selectedContacts}
+                                onSelectAll={handleSelectAll}
+                                onSelectContact={handleSelectContact}
+                                onEdit={(contact) => {
+                                    setEditingContact(contact);
+                                    setShowContactModal(true);
+                                }}
+                                onDelete={async (contactId) => {
+                                    await client.delete(`/contacts/${contactId}`);
+                                    fetchContacts();
+                                    fetchStats();
+                                }}
+                                theme={T}
+                                />
+                            </div> 
 
                         {/* Pagination */}
                         {totalPages > 1 && (

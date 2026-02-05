@@ -24,7 +24,7 @@ const NAV_ITEMS = [
   { key: "logs", icon: FiFileText, label: "Historique" },
   { key: "apikeys", icon: FiKey, label: "Clés API" },
   { key: "templates", icon: FaLayerGroup, label: "Modèles" },
-  { key: "automation", icon: FiZap, label: "Automatisation" },
+  { key: "automations", icon: FiZap, label: "Automatisation" },
   { key: "contacts", icon: FiUsers, label: "Contacts" },
   { key: "settings", icon: FiSettings, label: "Paramètres" },
 ];

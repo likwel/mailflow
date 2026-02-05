@@ -1,13 +1,12 @@
 // src/api/routes/contacts.js
-import { PrismaClient } from '@prisma/client';
-import express from 'express';
-const { authMiddleware } = require("../middleware/auth");
-import Papa from 'papaparse';
-import { z } from 'zod';
+const { PrismaClient } = require('@prisma/client');
+const express = require('express');
+const Papa = require('papaparse');
+const { z } = require('zod');
+const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
 const prisma = new PrismaClient();
-router.use(authMiddleware);
 
 // Validation schemas
 const contactSchema = z.object({
@@ -443,4 +442,4 @@ router.get('/stats/overview', authMiddleware, async (req, res) => {
   }
 });
 
-export default router;
+module.exports = router;
