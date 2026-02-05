@@ -98,6 +98,8 @@ model User {
   templates     Template[]
   emails        EmailLog[]
   sessions      Session[]
+  contacts  Contact[]
+  lists     List[]
 }
 
 // ─── Session (OAuth) ──────────────────────────────────
@@ -177,4 +179,124 @@ model RateLimit {
   count     Int      @default(1)
   expiresAt DateTime
   createdAt DateTime @default(now())
+}
+
+// prisma/schema.prisma
+
+model Contact {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  firstName     String?
+  lastName      String?
+  phone         String?
+  company       String?
+  tags          String[] // ["vip", "newsletter", etc.]
+  customFields  Json?    // Champs personnalisés flexibles
+  status        ContactStatus @default(ACTIVE)
+  source        String?  // "manual", "import", "api", "form"
+  
+  // Relations
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lists         ContactListMember[]
+  campaigns     CampaignRecipient[]
+  events        ContactEvent[]
+  
+  // Métadonnées
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  lastEmailSent DateTime?
+  emailsSent    Int      @default(0)
+  emailsOpened  Int      @default(0)
+  emailsClicked Int      @default(0)
+  
+  @@index([userId])
+  @@index([email])
+  @@index([status])
+}
+
+enum ContactStatus {
+  ACTIVE
+  UNSUBSCRIBED
+  BOUNCED
+  COMPLAINED
+  BLOCKED
+}
+
+model List {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contacts    ContactListMember[]
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([userId])
+}
+
+model ContactListMember {
+  id         String   @id @default(uuid())
+  contactId  String
+  contact    Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  listId     String
+  list       List     @relation(fields: [listId], references: [id], onDelete: Cascade)
+  addedAt    DateTime @default(now())
+  
+  @@unique([contactId, listId])
+  @@index([contactId])
+  @@index([listId])
+}
+
+model ContactEvent {
+  id         String   @id @default(uuid())
+  contactId  String
+  contact    Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  type       EventType
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  
+  @@index([contactId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+enum EventType {
+  EMAIL_SENT
+  EMAIL_OPENED
+  EMAIL_CLICKED
+  EMAIL_BOUNCED
+  UNSUBSCRIBED
+  SUBSCRIBED
+  CONTACT_CREATED
+  CONTACT_UPDATED
+  LIST_ADDED
+  LIST_REMOVED
+}
+
+model CampaignRecipient {
+  id         String   @id @default(uuid())
+  campaignId String
+  contactId  String
+  contact    Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  status     RecipientStatus @default(PENDING)
+  sentAt     DateTime?
+  openedAt   DateTime?
+  clickedAt  DateTime?
+  
+  @@unique([campaignId, contactId])
+  @@index([contactId])
+  @@index([campaignId])
+}
+
+enum RecipientStatus {
+  PENDING
+  SENT
+  DELIVERED
+  OPENED
+  CLICKED
+  BOUNCED
+  FAILED
 }

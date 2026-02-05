@@ -10,6 +10,7 @@ import {
   FiMail,
   FiBell
 } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
 
 const CODE = `const res = await fetch("https://api.mailflow.dev/api/v1/send", {
   method: "POST",
@@ -69,6 +70,7 @@ const STATS = [
 ];
 
 export default function Home() {
+  const navigate = useNavigate();
   return (
     <div style={{ paddingTop: 64 }}>
       {/* ── Hero ── */}
@@ -88,7 +90,7 @@ export default function Home() {
         </p>
 
         <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
-          <button style={styles.btn}>Démarrer gratuitement →</button>
+          <button onClick={() => navigate('/dashboard')} style={styles.btn}>Démarrer gratuitement →</button>
           <button style={styles.btnOutline} onClick={() => document.getElementById("code-section")?.scrollIntoView({ behavior: "smooth" })}>
             Voir l'exemple
           </button>

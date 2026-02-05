@@ -12,7 +12,7 @@ import {
   FiSettings,
   FiLogOut,
   FiMenu,
-  FiX,
+  FiX, FiZap, FiUsers,
 } from "react-icons/fi";
 import { FaLayerGroup } from "react-icons/fa";
 import client from "../api/client";
@@ -20,10 +20,12 @@ import { Link } from "react-router-dom";
 
 const NAV_ITEMS = [
   { key: "overview", icon: FiHome, label: "Vue d’ensemble" },
+  { key: "bulk", icon: FiMail, label: "Envoi des emails" },
   { key: "logs", icon: FiFileText, label: "Historique" },
   { key: "apikeys", icon: FiKey, label: "Clés API" },
   { key: "templates", icon: FaLayerGroup, label: "Modèles" },
-  { key: "bulk", icon: FiMail, label: "Envoi en masse" },
+  { key: "automation", icon: FiZap, label: "Automatisation" },
+  { key: "contacts", icon: FiUsers, label: "Contacts" },
   { key: "settings", icon: FiSettings, label: "Paramètres" },
 ];
 
@@ -138,10 +140,10 @@ export default function Sidebar({ active, onNavigate, user }) {
           <Link to="/">
             <div
               style={{
-                width: 32,
-                height: 32,
+                width: 40,
+                height: 40,
                 borderRadius: 8,
-                background: T.primary,
+                // background: T.primary,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
