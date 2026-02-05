@@ -9,6 +9,7 @@ const transporter = require("../config/smtp");
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const crypto = require("crypto");
+const { appendFooter } = require("../utils/footerMail");
 
 const dashRouter = express.Router();
 dashRouter.use(authMiddleware);
@@ -170,7 +171,7 @@ dashRouter.delete("/apikeys/:id", async (req, res) => {
 
 // ─── Bulk send ────────────────────────────────────────
 dashRouter.post("/send-bulk", async (req, res) => {
-  const { recipients, subject, html, text, templateId } = req.body;
+  let { recipients, subject, html, text, templateId } = req.body;
   const { user } = req;
 
   if (!recipients || !Array.isArray(recipients) || recipients.length === 0) {
@@ -184,6 +185,8 @@ dashRouter.post("/send-bulk", async (req, res) => {
 
   const bulkGroupId = crypto.randomBytes(8).toString("hex");
   const results = [];
+
+  html = appendFooter(html, user);
 
   for (const recipient of recipients) {
     try {
@@ -238,7 +241,7 @@ dashRouter.post("/send-bulk", async (req, res) => {
 // POST /dashboard/send
 dashRouter.post("/send", async (req, res) => {
   const { user } = req;
-  const { to, subject, html, text } = req.body;
+  let { to, subject, html, text } = req.body;
 
   if (!to || !Array.isArray(to) || to.length === 0)
     return res.status(400).json({ error: "Destinataires requis" });
@@ -254,6 +257,8 @@ dashRouter.post("/send", async (req, res) => {
   }
 
   const bulkGroupId = to.length > 1 ? crypto.randomBytes(8).toString("hex") : null;
+
+  html = appendFooter(html, user);
 
   try {
     const logs = [];

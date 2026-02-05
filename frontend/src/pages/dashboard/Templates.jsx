@@ -26,6 +26,7 @@ export default function Templates() {
     setError("");
     try {
       const res = await client.get("/dashboard/templates");
+      console.log(res)
       setList(res.data);
     } catch (err) {
       setError(err.response?.data?.error || "Erreur lors du chargement");
@@ -106,21 +107,115 @@ export default function Templates() {
 
       {/* Modal Preview */}
       <Modal open={!!previewData} onClose={() => setPreviewData(null)} title={previewData?.name || ""}>
-        <p style={{ color: T.textSub, fontSize: 12, margin: "0 0 12px" }}>
-          <strong>Sujet :</strong> {previewData?.subject}
-        </p>
+        
+        {/* Variables extraites de name, subject et htmlBody */}
+          {previewData && (
+            (() => {
+              const fields = [previewData.name, previewData.subject, previewData.htmlBody];
+              const regex = /{{\s*([^}]+)\s*}}/g;
+              const variablesSet = new Set();
+
+              fields.forEach(field => {
+                if (!field) return;
+                let match;
+                while ((match = regex.exec(field)) !== null) {
+                  variablesSet.add(match[1].trim());
+                }
+              });
+
+              const variables = Array.from(variablesSet);
+
+              if (variables.length === 0) return null;
+
+              return (
+                <div 
+                  style={{ 
+                    fontSize: '1rem', 
+                    color: T.textSub, 
+                    marginBottom: 10, 
+                    border: `1px solid ${T.primary}`,       // bordure visible
+                    borderRadius: 6,                         // coins arrondis
+                    padding: '10px 12px',                    // espace intérieur
+                    backgroundColor: `${T.primaryLight}33`,  // fond légèrement transparent
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)' // légère ombre pour le relief
+                  }}
+                >
+                  <strong>Variables utilisées :</strong>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
+                    {variables.map((v, i) => (
+                      <span 
+                        key={i} 
+                        style={{ 
+                          background: T.primaryLight, 
+                          color: T.primary, 
+                          padding: "2px 6px", 
+                          borderRadius: 4, 
+                          fontSize: 11, 
+                          fontWeight: 600 
+                        }}
+                      >
+                        {v}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()
+          )}
         <div 
-          style={{ 
-            background: T.bg, 
-            border: `1px solid ${T.border}`, 
-            borderRadius: 8, 
-            padding: 20, 
-            color: T.text, 
-            fontSize: 14, 
-            lineHeight: 1.6 
-          }} 
-          dangerouslySetInnerHTML={{ __html: previewData?.html || "" }} 
-        />
+          style={{
+            padding: '14px 16px',
+            border: `1px solid ${T.primary}`,
+            borderRadius: 8,
+            backgroundColor: `${T.primaryLight}33`, // fond légèrement transparent
+            boxShadow: '0 4px 8px rgba(0,0,0,0.08)',
+            marginBottom: 16,
+          }}
+        >
+          {/* Titre */}
+          <p style={{ 
+            color: T.textSub, 
+            fontWeight: 700, 
+            fontSize: '1.1rem', 
+            margin: "0 0 8px" 
+          }}>
+            <strong>Titre :</strong> {previewData?.name}
+          </p>
+
+          {/* Sujet */}
+          <p style={{ 
+            color: T.textSub, 
+            fontWeight: 600, 
+            fontSize: '1rem', 
+            margin: "0 0 12px" 
+          }}>
+            <strong>Sujet :</strong> {previewData?.subject}
+          </p>
+
+          {/* Corps du mail */}
+          <p style={{ 
+            color: T.textSub, 
+            fontWeight: 600, 
+            fontSize: '1rem', 
+            margin: "0 0 6px" 
+          }}>
+            <strong>Corps du mail :</strong>
+          </p>
+          <div style={{
+            background: T.bg,
+            border: `1px solid ${T.border}`,
+            borderRadius: 6,
+            padding: 12,
+            color: T.text,
+            fontSize: 14,
+            lineHeight: 1.6,
+            maxHeight: 250,
+            overflowY: 'auto',
+          }}
+          dangerouslySetInnerHTML={{ __html: previewData?.htmlBody || "" }}
+          />
+        </div>
+
       </Modal>
 
       {/* Formulaire edit / new */}
@@ -194,7 +289,7 @@ export default function Templates() {
               </button>
               
               <button 
-                onClick={() => setPreviewData({ name: form.name, subject: form.subject, html: form.html })}
+                onClick={() => setPreviewData({ name: form.name, subject: form.subject, html: form.html, htmlBody: form.html })}
                 disabled={saving}
                 style={{ 
                   ...styles.btnOutline,

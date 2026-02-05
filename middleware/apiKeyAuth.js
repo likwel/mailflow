@@ -2,6 +2,8 @@
 // middleware/apiKeyAuth.js — Vérifie l'API Key (public)
 // =====================================================
 const crypto = require("crypto");
+const { PrismaClient } = require("@prisma/client");
+const prisma = new PrismaClient();
 
 const hashKey = (key) =>
   crypto.createHash("sha256").update(key).digest("hex");
@@ -32,7 +34,7 @@ const apiKeyAuth = async (req, res, next) => {
     req.user = keyRecord.user;
     next();
   } catch (e) {
-    res.status(500).json({ error: "Erreur interne" });
+    res.status(500).json({ error: "Erreur interne" + e.message });
   }
 };
 

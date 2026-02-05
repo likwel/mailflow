@@ -239,6 +239,7 @@ apiRouter.post("/send", cors({
   const bulkGroupId = to.length > 1 ? crypto.randomBytes(8).toString("hex") : null;
 
   finalHtml = appendFooter(finalHtml, user);
+  finalText = appendFooter(finalText, user);
 
   try {
     const logs = [];
