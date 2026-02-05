@@ -1,12 +1,13 @@
 // src/api/routes/contacts.js
 import { PrismaClient } from '@prisma/client';
 import express from 'express';
-import { authenticateToken } from '../middleware/auth.js';
+const { authMiddleware } = require("../middleware/auth");
 import Papa from 'papaparse';
 import { z } from 'zod';
 
 const router = express.Router();
 const prisma = new PrismaClient();
+router.use(authMiddleware);
 
 // Validation schemas
 const contactSchema = z.object({
@@ -20,7 +21,7 @@ const contactSchema = z.object({
 });
 
 // ==================== GET ALL CONTACTS ====================
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authMiddleware, async (req, res) => {
   try {
     const { 
       page = 1, 
@@ -93,7 +94,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // ==================== GET CONTACT BY ID ====================
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/:id', authMiddleware, async (req, res) => {
   try {
     const contact = await prisma.contact.findFirst({
       where: {
@@ -125,7 +126,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 // ==================== CREATE CONTACT ====================
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', authMiddleware, async (req, res) => {
   try {
     const validatedData = contactSchema.parse(req.body);
     const { listIds = [], ...contactData } = validatedData;
@@ -180,7 +181,7 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // ==================== UPDATE CONTACT ====================
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', authMiddleware, async (req, res) => {
   try {
     const validatedData = contactSchema.partial().parse(req.body);
     const { listIds, ...contactData } = validatedData;
@@ -224,7 +225,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 });
 
 // ==================== DELETE CONTACT ====================
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', authMiddleware, async (req, res) => {
   try {
     const contact = await prisma.contact.findFirst({
       where: {
@@ -249,7 +250,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 });
 
 // ==================== BULK DELETE CONTACTS ====================
-router.post('/bulk/delete', authenticateToken, async (req, res) => {
+router.post('/bulk/delete', authMiddleware, async (req, res) => {
   try {
     const { contactIds } = req.body;
     
@@ -272,7 +273,7 @@ router.post('/bulk/delete', authenticateToken, async (req, res) => {
 });
 
 // ==================== IMPORT CONTACTS (CSV) ====================
-router.post('/import', authenticateToken, async (req, res) => {
+router.post('/import', authMiddleware, async (req, res) => {
   try {
     const { csvData, listId, updateExisting = false } = req.body;
     
@@ -370,7 +371,7 @@ router.post('/import', authenticateToken, async (req, res) => {
 });
 
 // ==================== ADD CONTACTS TO LIST ====================
-router.post('/bulk/add-to-list', authenticateToken, async (req, res) => {
+router.post('/bulk/add-to-list', authMiddleware, async (req, res) => {
   try {
     const { contactIds, listId } = req.body;
     
@@ -420,7 +421,7 @@ router.post('/bulk/add-to-list', authenticateToken, async (req, res) => {
 });
 
 // ==================== GET CONTACT STATISTICS ====================
-router.get('/stats/overview', authenticateToken, async (req, res) => {
+router.get('/stats/overview', authMiddleware, async (req, res) => {
   try {
     const [total, active, unsubscribed, bounced] = await Promise.all([
       prisma.contact.count({ where: { userId: req.user.id } }),
