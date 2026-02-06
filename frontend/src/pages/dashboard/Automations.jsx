@@ -96,7 +96,7 @@ export default function Automations() {
 
     return (
         <>
-        <div style={{ display: "flex", flexDirection: "column", gap: 24, padding: "24px 0" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 20}}>
 
             {/* ========== HEADER ========== */}
             <div style={{
@@ -109,7 +109,7 @@ export default function Automations() {
                 <div>
                     <h1 style={{
                         color: T.text,
-                        fontSize: 32,
+                        fontSize: 28,
                         fontWeight: 700,
                         margin: 0,
                         marginBottom: 8,
@@ -117,9 +117,9 @@ export default function Automations() {
                         alignItems: "center",
                         gap: 12
                     }}>
-                        <div style={{
-                            width: 48,
-                            height: 48,
+                        {/* <div style={{
+                            width: 40,
+                            height: 40,
                             borderRadius: 12,
                             background: `linear-gradient(135deg, ${T.primary} 0%, #5558e3 100%)`,
                             display: "flex",
@@ -128,12 +128,12 @@ export default function Automations() {
                             boxShadow: "0 4px 12px rgba(99, 102, 241, 0.3)"
                         }}>
                             🤖
-                        </div>
+                        </div> */}
                         Automatisations
                     </h1>
                     <p style={{
                         color: T.textSub,
-                        fontSize: 15,
+                        fontSize: 14,
                         margin: 0
                     }}>
                         Automatisez vos campagnes emails
@@ -146,13 +146,13 @@ export default function Automations() {
                         setShowCreateModal(true);
                     }}
                     style={{
-                        padding: "12px 24px",
+                        padding: "10px 22px",
                         background: `linear-gradient(135deg, ${T.primary} 0%, #5558e3 100%)`,
                         color: "#fff",
                         border: "none",
                         borderRadius: 10,
                         cursor: "pointer",
-                        fontSize: 15,
+                        fontSize: 14,
                         fontWeight: 600,
                         boxShadow: "0 4px 12px rgba(99, 102, 241, 0.3)",
                         display: "flex",
@@ -252,7 +252,7 @@ export default function Automations() {
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             style={{
-                                width: "100%",
+                                width: "93%",
                                 padding: "12px 16px 12px 44px",
                                 border: `2px solid ${T.border}`,
                                 borderRadius: 10,

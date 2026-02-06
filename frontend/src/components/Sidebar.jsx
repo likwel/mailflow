@@ -18,13 +18,18 @@ import { FaLayerGroup } from "react-icons/fa";
 import client from "../api/client";
 import { Link } from "react-router-dom";
 
+import {
+    Workflow, Mail, BarChart3, Plus, Search, Play, Pause,
+    Copy, Trash2, Settings, Edit, RefreshCw
+} from "lucide-react";
+
 const NAV_ITEMS = [
   { key: "overview", icon: FiHome, label: "Vue d’ensemble" },
-  { key: "bulk", icon: FiMail, label: "Envoi des emails" },
+  { key: "bulk", icon: FiMail, label: "Envoi mail" },
   { key: "logs", icon: FiFileText, label: "Historique" },
   { key: "apikeys", icon: FiKey, label: "Clés API" },
   { key: "templates", icon: FaLayerGroup, label: "Modèles" },
-  { key: "automations", icon: FiZap, label: "Automatisation" },
+  { key: "automations", icon: Workflow, label: "Automatisation" },
   { key: "contacts", icon: FiUsers, label: "Contacts" },
   { key: "settings", icon: FiSettings, label: "Paramètres" },
 ];
@@ -185,6 +190,7 @@ export default function Sidebar({ active, onNavigate, user }) {
             display: "flex",
             flexDirection: "column",
             gap: 2,
+            overflowY : 'auto',
           }}
         >
           {NAV_ITEMS.map(({ key, icon: Icon, label }) => (

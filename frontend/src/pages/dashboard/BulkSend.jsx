@@ -179,14 +179,14 @@ export default function BulkSend() {
       {quota && (
         <div style={{ 
           ...styles.card, 
-          padding: "14px 18px",
+          padding: "20px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
         }}>
           <div>
-            <p style={{ color: T.textSub, fontSize: 12, margin: 0 }}>Quota mensuel</p>
-            <p style={{ color: T.text, fontSize: 16, fontWeight: 700, margin: "2px 0 0" }}>
+            <p style={{ color: '#1e293b', fontSize: '1rem', fontWeight: 600, margin: 0, marginBottom : 10 }}>Quota mensuel</p>
+            <p style={{ color: T.textSub, fontSize: 12, fontWeight: 500, margin: "2px 0 0" }}>
               {quota.remaining.toLocaleString()} emails restants
             </p>
           </div>
@@ -280,9 +280,9 @@ export default function BulkSend() {
                   background: isActive ? T.card : "transparent",
                   border: "none",
                   borderBottom: isActive ? `3px solid ${T.primary}` : "3px solid transparent",
-                  color: isActive ? T.primary : T.textSub,
-                  fontWeight: isActive ? 700 : 500,
-                  fontSize: 14,
+                  color: isActive ? T.primary : '#1e293b',
+                  fontWeight: 700,
+                  fontSize: 15,
                   cursor: "pointer",
                   transition: "all 0.2s",
                 }}

@@ -233,7 +233,7 @@ export default function ApiKeys() {
               >
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-                    <span style={{ color: T.text, fontSize: 14, fontWeight: 600 }}>{k.name}</span>
+                    <span style={{ color: 'rgb(30, 41, 59)', fontSize: 15, fontWeight: 700 }}>{k.name}</span>
                     <span style={{ 
                       fontSize: 10, 
                       fontWeight: 700, 

@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { T, styles } from "../../theme";
 import Badge from "../../components/Badge";
 import client from "../../api/client";
-import { Search, RefreshCw, ChevronLeft, ChevronRight, X, Eye, Send } from "lucide-react";
+import { Search, RefreshCw, ChevronLeft, ChevronRight, X, Eye, Send, Trash2, Edit, Archive, CheckSquare, Square, Download } from "lucide-react";
 
 export default function Logs() {
   const [logs, setLogs] = useState([]);
@@ -18,6 +18,7 @@ export default function Logs() {
   const [total, setTotal] = useState(0);
   const [selectedLog, setSelectedLog] = useState(null);
   const [resending, setResending] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
 
   useEffect(() => {
     fetchLogs();
@@ -29,7 +30,7 @@ export default function Logs() {
     try {
       const params = { page, limit: 10 };
       if (filter !== "ALL") params.status = filter;
-      
+
       const res = await client.get("/dashboard/logs", { params });
       setLogs(res.data.logs);
       setTotal(res.data.total);
@@ -63,16 +64,115 @@ export default function Logs() {
     }
   }
 
-  const data = logs.filter((l) => 
-    l.subject.toLowerCase().includes(q.toLowerCase()) || 
+  const data = logs.filter((l) =>
+    l.subject.toLowerCase().includes(q.toLowerCase()) ||
     l.to.some(email => email.toLowerCase().includes(q.toLowerCase()))
   );
+
+  // Sélectionner/Désélectionner tout
+  const toggleSelectAll = () => {
+    if (selectedIds.size === data.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(data.map(item => item.id)));
+    }
+  };
+
+  // Sélectionner/Désélectionner un élément
+  const toggleSelect = (id) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  // Actions groupées
+  const deleteSelected = async () => {
+    if (selectedIds.size === 0) return;
+
+    if (!window.confirm(`Supprimer ${selectedIds.size} email(s) ?`)) return;
+
+    try {
+      // Appel API pour supprimer
+      // await client.delete('/emails/bulk', { data: { ids: Array.from(selectedIds) } });
+
+      setData(data.filter(item => !selectedIds.has(item.id)));
+      setSelectedIds(new Set());
+      alert('Emails supprimés avec succès');
+    } catch (error) {
+      console.error('Erreur suppression:', error);
+      alert('Erreur lors de la suppression');
+    }
+  };
+
+  const archiveSelected = async () => {
+    if (selectedIds.size === 0) return;
+
+    try {
+      // await client.patch('/emails/bulk-archive', { ids: Array.from(selectedIds) });
+
+      setData(data.map(item =>
+        selectedIds.has(item.id)
+          ? { ...item, status: 'archived' }
+          : item
+      ));
+      setSelectedIds(new Set());
+      alert('Emails archivés avec succès');
+    } catch (error) {
+      console.error('Erreur archivage:', error);
+      alert('Erreur lors de l\'archivage');
+    }
+  };
+
+  const resendSelected = async () => {
+    if (selectedIds.size === 0) return;
+
+    if (!window.confirm(`Renvoyer ${selectedIds.size} email(s) ?`)) return;
+
+    try {
+      // await client.post('/emails/bulk-resend', { ids: Array.from(selectedIds) });
+
+      alert('Emails renvoyés avec succès');
+      setSelectedIds(new Set());
+    } catch (error) {
+      console.error('Erreur renvoi:', error);
+      alert('Erreur lors du renvoi');
+    }
+  };
+
+  const exportSelected = () => {
+    if (selectedIds.size === 0) return;
+
+    const selectedData = data.filter(item => selectedIds.has(item.id));
+    const csvContent = [
+      ['ID', 'Sujet', 'Destinataire', 'Statut', 'Date'].join(','),
+      ...selectedData.map(item => [
+        item.id,
+        `"${item.subject}"`,
+        item.to.join(';'),
+        item.status,
+        new Date(item.sentAt || item.createdAt).toISOString()
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `emails-export-${Date.now()}.csv`;
+    link.click();
+  };
+
+  const allSelected = selectedIds.size > 0 && selectedIds.size === data.length;
+  const someSelected = selectedIds.size > 0 && selectedIds.size < data.length;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       <div>
         <p style={{ color: T.textSub, fontSize: 20, margin: "4px 0 0" }}>
-          Historique complet de vos envois · <span style={{color: '#6366f1', fontWeight : 600}}>{total}</span> email{total > 1 ? "s" : ""}
+          Historique complet de vos envois · <span style={{ color: '#6366f1', fontWeight: 600 }}>{total}</span> email{total > 1 ? "s" : ""}
         </p>
       </div>
 
@@ -85,30 +185,34 @@ export default function Logs() {
 
       {/* Filtres */}
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "stretch" }}>
-        <div style={{ display: "flex", height : "h-full", gap: 3, background: "white", border: `1px solid ${T.border}`, borderRadius: 8, padding: 3 }}>
-          {["ALL","SENT","FAILED","BOUNCED"].map((st) => (
-            <button 
-              key={st} 
-              onClick={() => { setFilter(st); setPage(1); }}
+        <div style={{ display: "flex", height: "h-full", gap: 3, background: "white", border: `1px solid ${T.border}`, borderRadius: 8, padding: 3 }}>
+          {["ALL", "SENT", "FAILED", "BOUNCED"].map((st) => (
+            <button
+              key={st}
+              onClick={() => {
+                setFilter(st);
+                setPage(1);
+                setSelectedIds(new Set()); // Reset sélection au changement de filtre
+              }}
               style={{
                 background: filter === st ? T.primary : "transparent",
                 border: "none",
-                color: filter === st ? "#fff" : T.textSub,
-                padding: "5px 13px", 
-                borderRadius: 6, 
-                cursor: "pointer", 
-                fontSize: ".75rem", 
-                fontWeight: 500,
+                color: filter === st ? "#fff" : '#1e293b',
+                padding: "5px 13px",
+                borderRadius: 6,
+                cursor: "pointer",
+                fontSize: ".75rem",
+                fontWeight: 600,
               }}
             >
               {st}
             </button>
           ))}
         </div>
-        
+
         <div style={{ position: "relative", flex: 1, minWidth: 180 }}>
-          <Search 
-            size={16} 
+          <Search
+            size={16}
             style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: T.textMuted }}
           />
           <input
@@ -119,16 +223,19 @@ export default function Logs() {
           />
         </div>
 
-        <button 
-          onClick={fetchLogs} 
-          disabled={loading} 
-          style={{ 
-            ...styles.btnSm, 
+        <button
+          onClick={() => {
+            fetchLogs();
+            setSelectedIds(new Set());
+          }}
+          disabled={loading}
+          style={{
+            ...styles.btnSm,
             opacity: loading ? 0.5 : 1,
             display: "flex",
             alignItems: "center",
             gap: 6,
-            fontSize : ".75rem",
+            fontSize: ".75rem",
           }}
         >
           <RefreshCw size={14} />
@@ -136,65 +243,536 @@ export default function Logs() {
         </button>
       </div>
 
+      {/* NOUVELLE Barre d'actions groupées */}
+      {selectedIds.size > 0 && (
+        <div style={{
+          ...styles.card,
+          padding: "14px 24px",
+          background: `linear-gradient(135deg, ${T.primaryLight} 0%, ${T.primaryLight}dd 100%)`,
+          border: `2px solid ${T.primary}`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 16,
+          animation: "slideDown 0.3s ease-out"
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <CheckSquare size={22} color={T.primary} strokeWidth={2.5} />
+            <span style={{
+              fontSize: 15,
+              fontWeight: 700,
+              color: T.primary
+            }}>
+              {selectedIds.size} email{selectedIds.size > 1 ? 's' : ''} sélectionné{selectedIds.size > 1 ? 's' : ''}
+            </span>
+          </div>
+
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button
+              onClick={resendSelected}
+              style={{
+                padding: "9px 18px",
+                background: T.primary,
+                color: "#fff",
+                border: "none",
+                borderRadius: 8,
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                transition: "all 0.2s",
+                boxShadow: `0 4px 12px ${T.primary}30`
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-2px)";
+                e.currentTarget.style.boxShadow = `0 6px 16px ${T.primary}40`;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = `0 4px 12px ${T.primary}30`;
+              }}
+            >
+              <Send size={15} />
+              Renvoyer
+            </button>
+
+            <button
+              onClick={exportSelected}
+              style={{
+                padding: "9px 18px",
+                background: "#fff",
+                color: T.text,
+                border: `2px solid ${T.border}`,
+                borderRadius: 8,
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                transition: "all 0.2s"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = T.bg;
+                e.currentTarget.style.borderColor = T.text;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "#fff";
+                e.currentTarget.style.borderColor = T.border;
+              }}
+            >
+              <Download size={15} />
+              Exporter CSV
+            </button>
+
+            <button
+              onClick={archiveSelected}
+              style={{
+                padding: "9px 18px",
+                background: "#fff",
+                color: T.text,
+                border: `2px solid ${T.border}`,
+                borderRadius: 8,
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                transition: "all 0.2s"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = T.bg;
+                e.currentTarget.style.borderColor = T.text;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "#fff";
+                e.currentTarget.style.borderColor = T.border;
+              }}
+            >
+              <Archive size={15} />
+              Archiver
+            </button>
+
+            <button
+              onClick={deleteSelected}
+              style={{
+                padding: "9px 18px",
+                background: "#fff",
+                color: T.danger,
+                border: `2px solid ${T.danger}`,
+                borderRadius: 8,
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                transition: "all 0.2s"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = T.danger;
+                e.currentTarget.style.color = "#fff";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "#fff";
+                e.currentTarget.style.color = T.danger;
+              }}
+            >
+              <Trash2 size={15} />
+              Supprimer
+            </button>
+
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              style={{
+                padding: "9px 14px",
+                background: "transparent",
+                color: T.textSub,
+                border: "none",
+                borderRadius: 8,
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: "pointer",
+                transition: "all 0.2s"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = T.text;
+                e.currentTarget.style.background = "#fff";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = T.textSub;
+                e.currentTarget.style.background = "transparent";
+              }}
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       <div style={{ ...styles.card, overflow: "hidden" }}>
         {/* Header */}
-        <div style={{ display: "grid", gridTemplateColumns: "95px 1fr 190px 130px 80px", padding: "10px 18px", background: T.bg, borderBottom: `1px solid ${T.border}` }}>
-          {["Statut", "Sujet","À","Date","Actions"].map((h) => (
-            <span key={h} style={{ color: T.textSub, fontSize: 12, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600 }}>{h}</span>
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "50px 100px 1fr 200px 140px 90px",
+          padding: "14px 8px",
+          background: T.bg,
+          borderBottom: `2px solid ${T.border}`,
+          position: "sticky",
+          top: 0,
+          zIndex: 10
+        }}>
+          {/* NOUVELLE Checkbox tout sélectionner */}
+          <div
+            onClick={toggleSelectAll}
+            style={{
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
+            }}
+            title={allSelected ? "Tout désélectionner" : "Tout sélectionner"}
+          >
+            {allSelected ? (
+              <CheckSquare
+                size={20}
+                color={T.primary}
+                strokeWidth={2.5}
+              />
+            ) : someSelected ? (
+              <div style={{
+                width: 20,
+                height: 20,
+                borderRadius: 4,
+                border: `2px solid ${T.primary}`,
+                background: T.primaryLight,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center"
+              }}>
+                <div style={{
+                  width: 10,
+                  height: 2,
+                  background: T.primary
+                }}></div>
+              </div>
+            ) : (
+              <Square
+                size={20}
+                color={T.textSub}
+                strokeWidth={2}
+              />
+            )}
+          </div>
+
+          {["Statut", "Sujet", "Destinataire", "Date d'envoi", "Actions"].map((h) => (
+            <span
+              key={h}
+              style={{
+                color: T.textSub,
+                fontSize: 12,
+                textTransform: "uppercase",
+                letterSpacing: 0.8,
+                fontWeight: 700
+              }}
+            >
+              {h}
+            </span>
           ))}
         </div>
 
         {/* Loading */}
         {loading && (
-          <p style={{ color: T.textSub, fontSize: 15, textAlign: "center", padding: 32 }}>Chargement...</p>
+          <div style={{
+            padding: "60px 24px",
+            textAlign: "center"
+          }}>
+            <div style={{
+              width: 40,
+              height: 40,
+              border: `3px solid ${T.border}`,
+              borderTopColor: T.primary,
+              borderRadius: "50%",
+              animation: "spin 1s linear infinite",
+              margin: "0 auto 16px"
+            }}></div>
+            <p style={{
+              color: T.textSub,
+              fontSize: 14,
+              margin: 0
+            }}>
+              Chargement des emails...
+            </p>
+          </div>
         )}
 
         {/* Rows */}
-        {!loading && data.map((l) => (
-          <div key={l.id} style={{ display: "grid", gridTemplateColumns: "95px 1fr 190px 130px 80px", padding: "11px 18px", borderBottom: `1px solid ${T.border}`, alignItems: "center" }}>
-            <Badge status={l.status} />
-            <div>
-              <span style={{ color: T.text, fontSize: 13, fontWeight: 500 }}>{l.subject}</span>
-              {l.isBulk && <span style={{ background: T.primaryLight, color: T.primary, fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 10, marginLeft: 6 }}>Campagne</span>}
-              {l.error && <p style={{ color: T.danger, fontSize: 11, margin: "2px 0 0" }}>Erreur : {l.error}</p>}
-            </div>
-            <span style={{ color: T.textSub, fontSize: 12 }}>
-              {l.to[0]}
-              {l.to.length > 1 && <span style={{ fontSize: 10, color: '#6366f1', fontWeight : 600 }}> +{l.to.length - 1}</span>}
-            </span>
-            <span style={{ color: T.textMuted, fontSize: 12 }}>
-              {new Date(l.sentAt || l.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
-            </span>
-            <button
-              onClick={() => setSelectedLog(l)}
+        {!loading && data.map((l, index) => {
+          const isSelected = selectedIds.has(l.id);
+
+          return (
+            <div
+              key={l.id}
               style={{
-                background: "transparent",
-                border: `1px solid ${T.border}`,
-                borderRadius: 6,
-                padding: "5px 8px",
-                cursor: "pointer",
-                color: T.primary,
-                fontSize: 11,
-                fontWeight: 600,
-                display: "flex",
+                display: "grid",
+                gridTemplateColumns: "50px 100px 1fr 200px 140px 90px",
+                padding: "14px 14px 8px 8px",
+                borderBottom: index === data.length - 1 ? "none" : `1px solid ${T.border}`,
                 alignItems: "center",
-                gap: 4,
+                transition: "all 0.2s ease",
+                cursor: "pointer",
+                background: isSelected ? T.primaryLight : "transparent"
+              }}
+              onMouseEnter={(e) => {
+                if (!isSelected) {
+                  e.currentTarget.style.background = "#fafbfc";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isSelected) {
+                  e.currentTarget.style.background = "transparent";
+                }
+              }}
+              onClick={(e) => {
+                if (e.target.closest('button') || e.target.closest('[data-checkbox]')) {
+                  return;
+                }
+                toggleSelect(l.id);
               }}
             >
-              <Eye size={14} />
-              Voir
-            </button>
-          </div>
-        ))}
+              {/* NOUVELLE Checkbox */}
+              <div
+                data-checkbox
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleSelect(l.id);
+                }}
+                style={{
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center"
+                }}
+              >
+                {isSelected ? (
+                  <CheckSquare
+                    size={20}
+                    color={T.primary}
+                    strokeWidth={2.5}
+                  />
+                ) : (
+                  <Square
+                    size={20}
+                    color={T.textSub}
+                    strokeWidth={2}
+                  />
+                )}
+              </div>
+
+              {/* Statut */}
+              <div>
+                <Badge status={l.status} />
+              </div>
+
+              {/* Sujet */}
+              <div style={{
+                paddingRight: 12,
+                minWidth: 0
+              }}>
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  marginBottom: 2
+                }}>
+                  <span style={{
+                    color: T.text,
+                    fontSize: 14,
+                    fontWeight: 600,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap"
+                  }}>
+                    {l.subject}
+                  </span>
+                  {l.isBulk && (
+                    <span style={{
+                      background: `linear-gradient(135deg, ${T.primaryLight} 0%, ${T.primaryLight}dd 100%)`,
+                      color: T.primary,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      padding: "3px 8px",
+                      borderRadius: 12,
+                      whiteSpace: "nowrap",
+                      border: `1px solid ${T.primary}30`
+                    }}>
+                      📧 Campagne
+                    </span>
+                  )}
+                </div>
+                {l.error && (
+                  <p style={{
+                    color: T.danger,
+                    fontSize: 12,
+                    margin: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4
+                  }}>
+                    <span style={{ fontSize: 14 }}>⚠️</span>
+                    {l.error}
+                  </p>
+                )}
+              </div>
+
+              {/* Destinataire */}
+              <div style={{
+                paddingRight: 12
+              }}>
+                <span style={{
+                  color: T.text,
+                  fontSize: 13,
+                  fontWeight: 500,
+                  display: "block",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap"
+                }}>
+                  {l.to[0]}
+                </span>
+                {l.to.length > 1 && (
+                  <span style={{
+                    fontSize: 11,
+                    color: T.primary,
+                    fontWeight: 600,
+                    background: T.primaryLight,
+                    padding: "2px 6px",
+                    borderRadius: 8,
+                    display: "inline-block",
+                    marginTop: 4
+                  }}>
+                    +{l.to.length - 1} autre{l.to.length - 1 > 1 ? "s" : ""}
+                  </span>
+                )}
+              </div>
+
+              {/* Date */}
+              <span style={{
+                color: T.textSub,
+                fontSize: 13,
+                fontWeight: 500
+              }}>
+                {new Date(l.sentAt || l.createdAt).toLocaleDateString("fr-FR", {
+                  day: "numeric",
+                  month: "short",
+                  hour: "2-digit",
+                  minute: "2-digit"
+                })}
+              </span>
+
+              {/* Actions */}
+              <div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedLog(l);
+                  }}
+                  style={{
+                    background: "transparent",
+                    border: `2px solid ${T.border}`,
+                    borderRadius: 8,
+                    padding: "7px 12px",
+                    cursor: "pointer",
+                    color: T.primary,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    transition: "all 0.2s ease",
+                    width: "100%",
+                    justifyContent: "center"
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = T.primaryLight;
+                    e.currentTarget.style.borderColor = T.primary;
+                    e.currentTarget.style.transform = "translateY(-1px)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "transparent";
+                    e.currentTarget.style.borderColor = T.border;
+                    e.currentTarget.style.transform = "translateY(0)";
+                  }}
+                >
+                  <Eye size={15} />
+                  Voir
+                </button>
+              </div>
+            </div>
+          );
+        })}
 
         {/* Vide */}
         {!loading && data.length === 0 && (
-          <p style={{ color: T.textMuted, fontSize: 15, textAlign: "center", padding: 32 }}>Aucun résultat trouvé.</p>
+          <div style={{
+            padding: "60px 24px",
+            textAlign: "center"
+          }}>
+            <div style={{
+              width: 64,
+              height: 64,
+              borderRadius: "50%",
+              background: T.bg,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 16px",
+              fontSize: 32
+            }}>
+              📭
+            </div>
+            <h3 style={{
+              color: T.text,
+              fontSize: 18,
+              fontWeight: 700,
+              margin: "0 0 8px"
+            }}>
+              Aucun email trouvé
+            </h3>
+            <p style={{
+              color: T.textSub,
+              fontSize: 14,
+              margin: 0
+            }}>
+              Aucun résultat ne correspond à vos critères de recherche
+            </p>
+          </div>
         )}
+
+        {/* Animation CSS */}
+        <style>{`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+          @keyframes slideDown {
+            from {
+              opacity: 0;
+              transform: translateY(-10px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+        `}</style>
       </div>
 
-      {/* Pagination */}
+      {/* Pagination - Reste identique */}
       {!loading && totalPages > 1 && (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
           <button
@@ -335,13 +913,13 @@ export default function Logs() {
               {/* Contenu */}
               <div style={{ marginBottom: 20 }}>
                 <p style={{ fontSize: 11, color: T.textSub, fontWeight: 600, margin: "0 0 6px" }}>CONTENU HTML</p>
-                <div style={{ 
-                  border: `1px solid ${T.border}`, 
-                  borderRadius: 8, 
-                  padding: 16, 
-                  background: T.bg, 
-                  maxHeight: 300, 
-                  overflow: "auto" 
+                <div style={{
+                  border: `1px solid ${T.border}`,
+                  borderRadius: 8,
+                  padding: 16,
+                  background: T.bg,
+                  maxHeight: 300,
+                  overflow: "auto"
                 }}>
                   <div dangerouslySetInnerHTML={{ __html: selectedLog.htmlBody }} />
                 </div>

@@ -26,8 +26,10 @@ const PAGE_TITLES = {
   logs: "Historique des emails",
   apikeys: "Clés API",
   templates: "Modèles",
-  bulk: "Envoi par lot",
+  bulk: "Envoi des emails",
   settings: "Paramètres",
+  contacts: "Contacts",
+  automations: "Automatisations",
 };
 
 export default function Header({ activePage }) {

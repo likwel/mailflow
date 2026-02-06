@@ -84,13 +84,13 @@ export default function Templates() {
             Créez des templates avec des variables {"{{variable}}"}
           </p>
         </div>
-        <button 
+        <button
           onClick={() => { setEd("new"); setForm({ name: "", subject: "", html: "" }); }}
-          style={{ 
-            ...styles.btn, 
-            display: "flex", 
-            alignItems: "center", 
-            gap: 6 
+          style={{
+            ...styles.btn,
+            display: "flex",
+            alignItems: "center",
+            gap: 6
           }}
         >
           <Plus size={16} />
@@ -107,62 +107,62 @@ export default function Templates() {
 
       {/* Modal Preview */}
       <Modal open={!!previewData} onClose={() => setPreviewData(null)} title={previewData?.name || ""}>
-        
+
         {/* Variables extraites de name, subject et htmlBody */}
-          {previewData && (
-            (() => {
-              const fields = [previewData.name, previewData.subject, previewData.htmlBody];
-              const regex = /{{\s*([^}]+)\s*}}/g;
-              const variablesSet = new Set();
+        {previewData && (
+          (() => {
+            const fields = [previewData.name, previewData.subject, previewData.htmlBody];
+            const regex = /{{\s*([^}]+)\s*}}/g;
+            const variablesSet = new Set();
 
-              fields.forEach(field => {
-                if (!field) return;
-                let match;
-                while ((match = regex.exec(field)) !== null) {
-                  variablesSet.add(match[1].trim());
-                }
-              });
+            fields.forEach(field => {
+              if (!field) return;
+              let match;
+              while ((match = regex.exec(field)) !== null) {
+                variablesSet.add(match[1].trim());
+              }
+            });
 
-              const variables = Array.from(variablesSet);
+            const variables = Array.from(variablesSet);
 
-              if (variables.length === 0) return null;
+            if (variables.length === 0) return null;
 
-              return (
-                <div 
-                  style={{ 
-                    fontSize: '1rem', 
-                    color: T.textSub, 
-                    marginBottom: 10, 
-                    border: `1px solid ${T.primary}`,       // bordure visible
-                    borderRadius: 6,                         // coins arrondis
-                    padding: '10px 12px',                    // espace intérieur
-                    backgroundColor: `${T.primaryLight}33`,  // fond légèrement transparent
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)' // légère ombre pour le relief
-                  }}
-                >
-                  <strong>Variables utilisées :</strong>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
-                    {variables.map((v, i) => (
-                      <span 
-                        key={i} 
-                        style={{ 
-                          background: T.primaryLight, 
-                          color: T.primary, 
-                          padding: "2px 6px", 
-                          borderRadius: 4, 
-                          fontSize: 11, 
-                          fontWeight: 600 
-                        }}
-                      >
-                        {v}
-                      </span>
-                    ))}
-                  </div>
+            return (
+              <div
+                style={{
+                  fontSize: '1rem',
+                  color: T.textSub,
+                  marginBottom: 10,
+                  border: `1px solid ${T.primary}`,       // bordure visible
+                  borderRadius: 6,                         // coins arrondis
+                  padding: '10px 12px',                    // espace intérieur
+                  backgroundColor: `${T.primaryLight}33`,  // fond légèrement transparent
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.05)' // légère ombre pour le relief
+                }}
+              >
+                <strong>Variables utilisées :</strong>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
+                  {variables.map((v, i) => (
+                    <span
+                      key={i}
+                      style={{
+                        background: T.primaryLight,
+                        color: T.primary,
+                        padding: "2px 6px",
+                        borderRadius: 4,
+                        fontSize: 11,
+                        fontWeight: 600
+                      }}
+                    >
+                      {v}
+                    </span>
+                  ))}
                 </div>
-              );
-            })()
-          )}
-        <div 
+              </div>
+            );
+          })()
+        )}
+        <div
           style={{
             padding: '14px 16px',
             border: `1px solid ${T.primary}`,
@@ -173,31 +173,31 @@ export default function Templates() {
           }}
         >
           {/* Titre */}
-          <p style={{ 
-            color: T.textSub, 
-            fontWeight: 700, 
-            fontSize: '1.1rem', 
-            margin: "0 0 8px" 
+          <p style={{
+            color: T.textSub,
+            fontWeight: 700,
+            fontSize: '1.1rem',
+            margin: "0 0 8px"
           }}>
             <strong>Titre :</strong> {previewData?.name}
           </p>
 
           {/* Sujet */}
-          <p style={{ 
-            color: T.textSub, 
-            fontWeight: 600, 
-            fontSize: '1rem', 
-            margin: "0 0 12px" 
+          <p style={{
+            color: T.textSub,
+            fontWeight: 600,
+            fontSize: '1rem',
+            margin: "0 0 12px"
           }}>
             <strong>Sujet :</strong> {previewData?.subject}
           </p>
 
           {/* Corps du mail */}
-          <p style={{ 
-            color: T.textSub, 
-            fontWeight: 600, 
-            fontSize: '1rem', 
-            margin: "0 0 6px" 
+          <p style={{
+            color: T.textSub,
+            fontWeight: 600,
+            fontSize: '1rem',
+            margin: "0 0 6px"
           }}>
             <strong>Corps du mail :</strong>
           </p>
@@ -212,7 +212,7 @@ export default function Templates() {
             maxHeight: 250,
             overflowY: 'auto',
           }}
-          dangerouslySetInnerHTML={{ __html: previewData?.htmlBody || "" }}
+            dangerouslySetInnerHTML={{ __html: previewData?.htmlBody || "" }}
           />
         </div>
 
@@ -229,12 +229,12 @@ export default function Templates() {
               <label style={{ color: T.textSub, fontSize: 12, display: "block", marginBottom: 6, fontWeight: 600 }}>
                 Nom du template
               </label>
-              <input 
-                value={form.name} 
-                onChange={(e) => setForm({ ...form, name: e.target.value })} 
-                placeholder="Ex: Bienvenue" 
+              <input
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="Ex: Bienvenue"
                 disabled={saving}
-                style={{ ...styles.input, opacity: saving ? 0.5 : 1 }} 
+                style={{ ...styles.input, opacity: saving ? 0.5 : 1 }}
               />
             </div>
 
@@ -242,12 +242,12 @@ export default function Templates() {
               <label style={{ color: T.textSub, fontSize: 12, display: "block", marginBottom: 6, fontWeight: 600 }}>
                 Sujet (utilisez {"{{variable}}"} pour des variables)
               </label>
-              <input 
-                value={form.subject} 
-                onChange={(e) => setForm({ ...form, subject: e.target.value })} 
-                placeholder="Ex: Bienvenue {{name}} !" 
+              <input
+                value={form.subject}
+                onChange={(e) => setForm({ ...form, subject: e.target.value })}
+                placeholder="Ex: Bienvenue {{name}} !"
                 disabled={saving}
-                style={{ ...styles.input, opacity: saving ? 0.5 : 1 }} 
+                style={{ ...styles.input, opacity: saving ? 0.5 : 1 }}
               />
             </div>
 
@@ -255,31 +255,31 @@ export default function Templates() {
               <label style={{ color: T.textSub, fontSize: 12, display: "block", marginBottom: 6, fontWeight: 600 }}>
                 Contenu HTML
               </label>
-              <textarea 
-                value={form.html} 
-                onChange={(e) => setForm({ ...form, html: e.target.value })} 
-                placeholder="<h1>Bonjour {{name}}</h1>\n<p>Contenu de votre email...</p>" 
+              <textarea
+                value={form.html}
+                onChange={(e) => setForm({ ...form, html: e.target.value })}
+                placeholder="<h1>Bonjour {{name}}</h1>\n<p>Contenu de votre email...</p>"
                 rows={8}
                 disabled={saving}
-                style={{ 
-                  ...styles.input, 
-                  resize: "vertical", 
-                  fontFamily: "monospace", 
-                  fontSize: 12, 
+                style={{
+                  ...styles.input,
+                  resize: "vertical",
+                  fontFamily: "monospace",
+                  fontSize: 12,
                   padding: "12px 14px",
                   opacity: saving ? 0.5 : 1,
-                }} 
+                }}
               />
             </div>
 
             <div style={{ display: "flex", gap: 8 }}>
-              <button 
+              <button
                 onClick={save}
                 disabled={saving}
-                style={{ 
-                  ...styles.btn, 
-                  display: "flex", 
-                  alignItems: "center", 
+                style={{
+                  ...styles.btn,
+                  display: "flex",
+                  alignItems: "center",
                   gap: 6,
                   opacity: saving ? 0.6 : 1,
                 }}
@@ -287,28 +287,28 @@ export default function Templates() {
                 <Save size={16} />
                 {saving ? "Sauvegarde..." : "Sauvegarder"}
               </button>
-              
-              <button 
+
+              <button
                 onClick={() => setPreviewData({ name: form.name, subject: form.subject, html: form.html, htmlBody: form.html })}
                 disabled={saving}
-                style={{ 
+                style={{
                   ...styles.btnOutline,
-                  display: "flex", 
-                  alignItems: "center", 
+                  display: "flex",
+                  alignItems: "center",
                   gap: 6,
                 }}
               >
                 <Eye size={16} />
                 Aperçu
               </button>
-              
-              <button 
+
+              <button
                 onClick={() => { setEd(null); setForm({ name: "", subject: "", html: "" }); }}
                 disabled={saving}
-                style={{ 
+                style={{
                   ...styles.btnOutline,
-                  display: "flex", 
-                  alignItems: "center", 
+                  display: "flex",
+                  alignItems: "center",
                   gap: 6,
                 }}
               >
@@ -339,113 +339,350 @@ export default function Templates() {
             </div>
           ) : (
             list.map((t) => (
-              <div 
-                key={t.id} 
-                style={{ 
-                  ...styles.card, 
-                  padding: 18, 
-                  display: "flex", 
-                  flexDirection: "column", 
-                  gap: 10 
+              <div
+                key={t.id}
+                style={{
+                  ...styles.card,
+                  padding: 0,
+                  display: "flex",
+                  flexDirection: "column",
+                  overflow: "hidden",
+                  transition: "all 0.3s ease",
+                  // border: `1px solid ${T.border}`,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = T.primary;
+                  e.currentTarget.style.boxShadow = `0 8px 24px ${T.primary}20`;
+                  e.currentTarget.style.transform = "translateY(-4px)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = T.border;
+                  e.currentTarget.style.boxShadow = "none";
+                  e.currentTarget.style.transform = "translateY(0)";
                 }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
-                  <p style={{ color: T.text, fontSize: 14, fontWeight: 600, margin: 0, flex: 1 }}>{t.name}</p>
-                  <span 
-                    style={{ 
-                      fontSize: 10, 
-                      fontWeight: 700, 
-                      padding: "3px 8px", 
-                      borderRadius: 12, 
-                      background: t.type === "SYSTEM" ? T.primaryLight : "#f3e8ff", 
-                      color: t.type === "SYSTEM" ? T.primary : "#7c3aed",
-                      flexShrink: 0,
-                    }}
-                  >
-                    {t.type}
-                  </span>
-                </div>
-                
-                <p style={{ 
-                  color: T.textSub, 
-                  fontSize: 12, 
-                  margin: 0, 
-                  fontStyle: "italic",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
+                {/* Header avec gradient */}
+                <div style={{
+                  background: t.type === "SYSTEM"
+                    ? `linear-gradient(135deg, ${T.primaryLight} 0%, ${T.primaryLight}dd 100%)`
+                    : "linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)",
+                  padding: "16px 20px",
+                  borderBottom: `1px solid ${T.border}`,
                 }}>
-                  {t.subject}
-                </p>
-                
-                <div style={{ marginTop: 8, padding: "6px 8px", background: T.bg, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
-                  <code style={{ fontSize: 10, color: T.textMuted, fontFamily: "monospace", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {t.id}
-                  </code>
-                  <button
-                    onClick={() => copyId(t.id)}
-                    style={{
-                      background: "transparent",
-                      border: "none",
-                      cursor: "pointer",
-                      padding: 2,
-                      display: "flex",
-                      alignItems: "center",
-                      color: copiedId === t.id ? T.success : T.textMuted,
-                    }}
-                    title="Copier l'ID"
-                  >
-                    {copiedId === t.id ? <Check size={12} /> : <Copy size={12} />}
-                  </button>
-                </div>
-
-                <div style={{ display: "flex", gap: 6, marginTop: "auto" }}>
-                  <button 
-                    onClick={() => setPreviewData(t)}
-                    style={{ 
-                      ...styles.btnOutline, 
+                  <div style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: 12,
+                    marginBottom: 8
+                  }}>
+                    <h3 style={{
+                      color: T.text,
+                      fontSize: 16,
+                      fontWeight: 700,
+                      margin: 0,
                       flex: 1,
                       display: "flex",
                       alignItems: "center",
+                      gap: 8
+                    }}>
+                      {t.type === "SYSTEM" ? "📧" : "✉️"} {t.name}
+                    </h3>
+
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        padding: "4px 12px",
+                        borderRadius: 16,
+                        background: t.type === "SYSTEM" ? T.primary : "#7c3aed",
+                        color: "#fff",
+                        flexShrink: 0,
+                        textTransform: "uppercase",
+                        letterSpacing: 0.5,
+                        boxShadow: t.type === "SYSTEM"
+                          ? `0 2px 8px ${T.primary}40`
+                          : "0 2px 8px #7c3aed40",
+                      }}
+                    >
+                      {t.type === "SYSTEM" ? "Système" : "Custom"}
+                    </span>
+                  </div>
+
+                  <p style={{
+                    color: T.textSub,
+                    fontSize: 13,
+                    margin: 0,
+                    fontWeight: 500,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6
+                  }}>
+                    <span style={{ fontSize: 16 }}>📝</span>
+                    <span style={{ fontStyle: "italic" }}>{t.subject}</span>
+                  </p>
+                </div>
+
+                {/* Content */}
+                <div style={{ padding: "16px 10px", flex: 1 }}>
+                  {/* ID avec amélioration visuelle */}
+                  <div style={{
+                    marginBottom: 16,
+                    padding: "10px 12px",
+                    background: `linear-gradient(135deg, ${T.bg} 0%, #fafbfc 100%)`,
+                    borderRadius: 10,
+                    border: `1px solid ${T.border}`,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 10
+                  }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{
+                        fontSize: 10,
+                        color: T.textMuted,
+                        textTransform: "uppercase",
+                        letterSpacing: 0.5,
+                        fontWeight: 700,
+                        display: "block",
+                        marginBottom: 4
+                      }}>
+                        ID du template
+                      </span>
+                      <code style={{
+                        fontSize: 12,
+                        color: T.text,
+                        fontFamily: "monospace",
+                        fontWeight: 600,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        display: "block"
+                      }}>
+                        {t.id}
+                      </code>
+                    </div>
+
+                    <button
+                      onClick={() => copyId(t.id)}
+                      style={{
+                        background: copiedId === t.id ? T.success + "15" : "transparent",
+                        border: `1px solid ${copiedId === t.id ? T.success : T.border}`,
+                        borderRadius: 8,
+                        cursor: "pointer",
+                        padding: 8,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        color: copiedId === t.id ? T.success : T.textSub,
+                        fontSize: 11,
+                        fontWeight: 600,
+                        transition: "all 0.2s ease",
+                        flexShrink: 0
+                      }}
+                      title="Copier l'ID"
+                      onMouseEnter={(e) => {
+                        if (copiedId !== t.id) {
+                          e.currentTarget.style.background = T.primaryLight;
+                          e.currentTarget.style.borderColor = T.primary;
+                          e.currentTarget.style.color = T.primary;
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (copiedId !== t.id) {
+                          e.currentTarget.style.background = "transparent";
+                          e.currentTarget.style.borderColor = T.border;
+                          e.currentTarget.style.color = T.textSub;
+                        }
+                      }}
+                    >
+                      {copiedId === t.id ? (
+                        <>
+                          <Check size={14} />
+                          Copié !
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={14} />
+                          Copier
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Metadata */}
+                  <div style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(2, 1fr)",
+                    gap: 12,
+                    marginBottom: 4,
+                    padding: 12,
+                    background: T.bg,
+                    borderRadius: 8,
+                    border: `1px solid ${T.border}`
+                  }}>
+                    <div>
+                      <span style={{
+                        fontSize: 10,
+                        color: T.textMuted,
+                        textTransform: "uppercase",
+                        letterSpacing: 0.5,
+                        fontWeight: 700,
+                        display: "block",
+                        marginBottom: 1
+                      }}>
+                        Type
+                      </span>
+                      <span style={{
+                        fontSize: 13,
+                        color: T.text,
+                        fontWeight: 600
+                      }}>
+                        {t.type === "SYSTEM" ? "Email système" : "Template personnalisé"}
+                      </span>
+                    </div>
+
+                    <div>
+                      <span style={{
+                        fontSize: 10,
+                        color: T.textMuted,
+                        textTransform: "uppercase",
+                        letterSpacing: 0.5,
+                        fontWeight: 700,
+                        display: "block",
+                        marginBottom: 4
+                      }}>
+                        Statut
+                      </span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: "50%",
+                          background: T.success,
+                          display: "inline-block",
+                          boxShadow: `0 0 8px ${T.success}60`
+                        }}></span>
+                        <span style={{
+                          fontSize: 13,
+                          color: T.success,
+                          fontWeight: 600
+                        }}>
+                          Actif
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Actions footer */}
+                <div style={{
+                  padding: "12px 20px",
+                  background: "#fafbfc",
+                  borderTop: `1px solid ${T.border}`,
+                  display: "flex",
+                  gap: 8
+                }}>
+                  <button
+                    onClick={() => setPreviewData(t)}
+                    style={{
+                      flex: 1,
+                      background: `linear-gradient(135deg, ${T.primary} 0%, #5558e3 100%)`,
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 8,
+                      padding: "10px 16px",
+                      cursor: "pointer",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      display: "flex",
+                      alignItems: "center",
                       justifyContent: "center",
-                      gap: 4,
-                      fontSize: 12,
-                      padding: "6px 10px",
+                      gap: 8,
+                      transition: "all 0.2s ease",
+                      boxShadow: `0 4px 12px ${T.primary}30`,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = "translateY(-2px)";
+                      e.currentTarget.style.boxShadow = `0 6px 16px ${T.primary}40`;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow = `0 4px 12px ${T.primary}30`;
                     }}
                   >
-                    <Eye size={14} />
-                    Voir
+                    <Eye size={16} />
+                    Prévisualiser
                   </button>
-                  
+
                   {t.type !== "SYSTEM" && (
                     <>
-                      <button 
-                        onClick={() => { 
-                          setEd(t.id); 
-                          setForm({ name: t.name, subject: t.subject, html: t.htmlBody }); 
+                      <button
+                        onClick={() => {
+                          setEd(t.id);
+                          setForm({ name: t.name, subject: t.subject, html: t.htmlBody });
                         }}
-                        style={{ 
-                          ...styles.btnOutline,
-                          padding: "6px 10px",
+                        style={{
+                          background: "transparent",
+                          border: `2px solid ${T.primary}`,
+                          borderRadius: 8,
+                          padding: "10px 14px",
+                          cursor: "pointer",
+                          color: T.primary,
+                          fontSize: 13,
+                          fontWeight: 600,
                           display: "flex",
                           alignItems: "center",
+                          justifyContent: "center",
+                          transition: "all 0.2s ease",
+                        }}
+                        title="Modifier"
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = T.primaryLight;
+                          e.currentTarget.style.transform = "translateY(-2px)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "transparent";
+                          e.currentTarget.style.transform = "translateY(0)";
                         }}
                       >
-                        <Edit2 size={14} />
+                        <Edit2 size={16} />
                       </button>
-                      
-                      <button 
-                        onClick={() => deleteTemplate(t.id)}
-                        style={{ 
-                          ...styles.btnOutline,
-                          borderColor: T.danger,
+
+                      <button
+                        onClick={() => {
+                          if (window.confirm(`Supprimer le template "${t.name}" ?`)) {
+                            deleteTemplate(t.id);
+                          }
+                        }}
+                        style={{
+                          background: "transparent",
+                          border: `2px solid ${T.danger}`,
+                          borderRadius: 8,
+                          padding: "10px 14px",
+                          cursor: "pointer",
                           color: T.danger,
-                          padding: "6px 10px",
+                          fontSize: 13,
+                          fontWeight: 600,
                           display: "flex",
                           alignItems: "center",
+                          justifyContent: "center",
+                          transition: "all 0.2s ease",
+                        }}
+                        title="Supprimer"
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = T.danger + "15";
+                          e.currentTarget.style.transform = "translateY(-2px)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "transparent";
+                          e.currentTarget.style.transform = "translateY(0)";
                         }}
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={16} />
                       </button>
                     </>
                   )}
