@@ -249,7 +249,7 @@ export default function Logs() {
           ...styles.card,
           padding: "14px 24px",
           background: `linear-gradient(135deg, ${T.primaryLight} 0%, ${T.primaryLight}dd 100%)`,
-          border: `2px solid ${T.primary}`,
+          border: `1px solid ${T.primary}`,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",

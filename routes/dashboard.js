@@ -241,7 +241,8 @@ dashRouter.post("/send-bulk", async (req, res) => {
 // POST /dashboard/send
 dashRouter.post("/send", async (req, res) => {
   const { user } = req;
-  let { to, subject, html, text } = req.body;
+  let { to, subject, html, text, varValues = {} } = req.body;
+  // varValues = { firstName: "Defaut", company: "N/A", ... } valeurs par défaut
 
   if (!to || !Array.isArray(to) || to.length === 0)
     return res.status(400).json({ error: "Destinataires requis" });
@@ -250,50 +251,133 @@ dashRouter.post("/send", async (req, res) => {
   if (!html && !text)
     return res.status(400).json({ error: "Corps de l'email requis" });
 
-  // Check quota
+  // ── Quota ──────────────────────────────────────────
   const quota = await checkQuota(user);
   if (user.emailsUsed + to.length > quota.limit) {
-    return res.status(429).json({ error: "Quota mensuel dépassé", used: user.emailsUsed, limit: quota.limit });
+    return res.status(429).json({
+      error: "Quota mensuel dépassé",
+      used: user.emailsUsed,
+      limit: quota.limit,
+    });
   }
 
-  const bulkGroupId = to.length > 1 ? crypto.randomBytes(8).toString("hex") : null;
+  // ── Charger les données contacts pour personnalisation ──
+  // On récupère tous les contacts correspondant aux emails destinataires
+  const contactsData = await prisma.contact.findMany({
+    where: { userId: user.id, email: { in: to } },
+    select: {
+      email: true,
+      firstName: true,
+      lastName: true,
+      phone: true,
+      company: true,
+      tags: true,
+      customFields: true,
+    },
+  });
 
-  html = appendFooter(html, user);
+  // Index email → données contact pour accès rapide
+  const contactMap = {};
+  contactsData.forEach(c => { contactMap[c.email.toLowerCase()] = c; });
+
+  // ── Fonction de remplacement des variables ──────────
+  function resolveVars(template, contact, defaults) {
+    if (!template) return template;
+    return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
+      // Priorité : 1) champ contact  2) customFields  3) valeur par défaut  4) variable vide
+      const c = contact || {};
+      const custom = (c.customFields && typeof c.customFields === "object") ? c.customFields : {};
+      return (
+        c[key]                         ??  // champ direct (firstName, company…)
+        custom[key]                    ??  // champ personnalisé JSON
+        defaults[key]                  ??  // valeur par défaut fournie par l'UI
+        ""
+      );
+    });
+  }
+
+  // ── Envoi ───────────────────────────────────────────
+  const bulkGroupId = to.length > 1 ? crypto.randomBytes(8).toString("hex") : null;
+  const fromName = user.name ? `${user.name}` : "MailFlow";
+  const fromAddr = process.env.SMTP_FROM;
 
   try {
     const logs = [];
-    for (const recipient of to) {
-      await transporter.sendMail({
-        from: (user.name ? user.name : 'MailFlow') + '' + process.env.SMTP_FROM,
-        to: recipient,
-        subject,
-        html,
-        text,
-      });
 
-      const log = await prisma.emailLog.create({
-        data: {
-          userId: user.id,
-          to: [recipient],
-          subject,
-          htmlBody: html || "",
-          textBody: text || null,
-          status: "SENT",
-          sentAt: new Date(),
-          isBulk: to.length > 1,
-          bulkGroupId,
-        },
-      });
-      logs.push(log);
+    for (const recipient of to) {
+      const contact = contactMap[recipient.toLowerCase()] || null;
+
+      // Personnalisation du sujet et du corps pour ce destinataire
+      const personalSubject = resolveVars(subject, contact, varValues);
+      const personalHtml    = resolveVars(appendFooter(html, user), contact, varValues);
+      const personalText    = text ? resolveVars(text, contact, varValues) : undefined;
+
+      try {
+        await transporter.sendMail({
+          from: `${fromName} <${fromAddr}>`,
+          to: recipient,
+          subject: personalSubject,
+          html: personalHtml,
+          ...(personalText ? { text: personalText } : {}),
+        });
+
+        const log = await prisma.emailLog.create({
+          data: {
+            userId: user.id,
+            to: [recipient],
+            subject: personalSubject,
+            htmlBody: personalHtml,
+            textBody: personalText || null,
+            status: "SENT",
+            sentAt: new Date(),
+            isBulk: to.length > 1,
+            bulkGroupId,
+          },
+        });
+        logs.push(log);
+
+      } catch (sendErr) {
+        // Un échec sur un destinataire n'interrompt pas les autres
+        console.error(`❌ Échec envoi à ${recipient}:`, sendErr.message);
+        await prisma.emailLog.create({
+          data: {
+            userId: user.id,
+            to: [recipient],
+            subject: personalSubject,
+            htmlBody: personalHtml || "",
+            status: "FAILED",
+            error: sendErr.message,
+            isBulk: to.length > 1,
+            bulkGroupId,
+          },
+        });
+        logs.push({ failed: true, to: recipient });
+      }
     }
 
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { emailsUsed: { increment: to.length } },
+    // Incrémenter le quota uniquement pour les envois réussis
+    const sentCount = logs.filter(l => !l.failed).length;
+    if (sentCount > 0) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { emailsUsed: { increment: sentCount } },
+      });
+    }
+
+    const failedCount = logs.filter(l => l.failed).length;
+
+    res.json({
+      success: true,
+      sent: sentCount,
+      failed: failedCount,
+      total: to.length,
+      logs: logs
+        .filter(l => !l.failed)
+        .map(l => ({ id: l.id, to: l.to, status: l.status })),
     });
 
-    res.json({ success: true, sent: to.length, logs: logs.map(l => ({ id: l.id, to: l.to, status: l.status })) });
   } catch (e) {
+    console.error("❌ Erreur globale envoi:", e.message);
     await prisma.emailLog.create({
       data: {
         userId: user.id,

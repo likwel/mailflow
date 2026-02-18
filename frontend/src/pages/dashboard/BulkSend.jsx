@@ -6,6 +6,9 @@ import { useAuth } from "../../hooks/useAuth";
 import { T, styles } from "../../theme";
 import client from "../../api/client";
 import { Send, Upload, FileText, X, AlertCircle, Info, Mail, Users, FileSpreadsheet } from "lucide-react";
+import ManualTab     from "../../components/bulksend/ManualTab";
+import BulkTab from "../../components/bulksend/BulkTab";
+import FileTab from "../../components/bulksend/FileTab";
 
 export default function BulkSend() {
   const { user } = useAuth();
@@ -307,357 +310,47 @@ export default function BulkSend() {
         {/* Tab Content */}
         <div style={{ padding: 24 }}>
           
-          {/* Tab 1: Saisie manuelle */}
-          {activeTab === "manual" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <div>
-                <h3 style={{ color: T.text, fontSize: 18, fontWeight: 700, margin: "0 0 8px" }}>
-                  Saisie manuelle des destinataires
-                </h3>
-                <p style={{ color: T.textSub, fontSize: 13, margin: 0 }}>
-                  Entrez une adresse email par ligne
-                </p>
-              </div>
-
-              <div>
-                <label style={{ color: T.textSub, fontSize: 14, display: "block", marginBottom: 8, fontWeight: 600 }}>
-                  Destinataires (un email par ligne)
-                </label>
-                <textarea 
-                  value={recipients} 
-                  onChange={(e) => setRecipients(e.target.value)} 
-                  placeholder={"contact@example.com\ninfo@example.com\nsupport@example.com"}
-                  rows={8}
-                  disabled={loading}
-                  style={{ 
-                    ...styles.input, 
-                    resize: "vertical", 
-                    fontFamily: "monospace", 
-                    fontSize: 13, 
-                    padding: "12px 14px",
-                    opacity: loading ? 0.5 : 1,
-                    borderColor: exceedsLimit ? T.danger : T.border,
-                  }} 
-                />
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
-                  <p style={{ 
-                    color: exceedsLimit ? T.danger : T.textMuted, 
-                    fontSize: 11, 
-                    margin: 0,
-                    fontWeight: exceedsLimit ? 600 : 400,
-                  }}>
-                    {count} / {maxAllowed} destinataire{count !== 1 ? "s" : ""}
-                  </p>
-                  {exceedsLimit && (
-                    <span style={{ fontSize: 11, color: T.danger, fontWeight: 600 }}>
-                      Limite dépassée
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <label style={{ color: T.textSub, fontSize: 14, display: "block", marginBottom: 8, fontWeight: 600 }}>
-                  Sujet de l'email
-                </label>
-                <input 
-                  value={subject} 
-                  onChange={(e) => setSubject(e.target.value)} 
-                  placeholder="Ex: Newsletter de janvier 2026"
-                  disabled={loading}
-                  style={{ ...styles.input, opacity: loading ? 0.5 : 1 }} 
-                />
-              </div>
-
-              <div>
-                <label style={{ color: T.textSub, fontSize: 14, display: "block", marginBottom: 8, fontWeight: 600 }}>
-                  Corps de l'email (HTML)
-                </label>
-                <textarea 
-                  value={html} 
-                  onChange={(e) => setHtml(e.target.value)} 
-                  placeholder={"<h1>Bonjour !</h1>\n<p>Voici notre newsletter du mois...</p>"}
-                  rows={8}
-                  disabled={loading}
-                  style={{ 
-                    ...styles.input, 
-                    resize: "vertical", 
-                    fontFamily: "monospace", 
-                    fontSize: 13, 
-                    padding: "12px 14px",
-                    opacity: loading ? 0.5 : 1,
-                  }} 
-                />
-                <p style={{ color: T.textMuted, fontSize: 11, margin: "6px 0 0" }}>
-                  💡 Utilisez du HTML pour formater votre message
-                </p>
-              </div>
-
-              <button
-                onClick={submit}
-                disabled={loading || !count || !subject || !html || exceedsLimit}
-                style={{
-                  ...styles.btn,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
-                  alignSelf: "flex-start",
-                  minWidth: 200,
-                  opacity: (loading || !count || !subject || !html || exceedsLimit) ? 0.5 : 1,
-                  cursor: (loading || !count || !subject || !html || exceedsLimit) ? "not-allowed" : "pointer",
-                }}
-              >
-                <Send size={16} />
-                {loading ? `Envoi en cours...` : `Envoyer à ${count} destinataire${count > 1 ? "s" : ""}`}
-              </button>
-            </div>
-          )}
+          
+        {/* Tab 1: Saisie manuelle */}
+        {activeTab === "manual" && (
+          <ManualTab
+            recipients={recipients} setRecipients={setRecipients}
+            subject={subject} setSubject={setSubject}
+            html={html} setHtml={setHtml}
+            count={count} maxAllowed={maxAllowed}
+            exceedsLimit={exceedsLimit} loading={loading}
+            onSubmit={submit}
+          />
+        )}
 
           {/* Tab 2: Envoi en lot (copier-coller) */}
           {activeTab === "bulk" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <div>
-                <h3 style={{ color: T.text, fontSize: 18, fontWeight: 700, margin: "0 0 8px" }}>
-                  Envoi en lot rapide
-                </h3>
-                <p style={{ color: T.textSub, fontSize: 13, margin: 0 }}>
-                  Collez une liste d'emails séparés par des virgules, espaces ou retours à la ligne
-                </p>
-              </div>
-
-              <div>
-                <label style={{ color: T.textSub, fontSize: 14, display: "block", marginBottom: 8, fontWeight: 600 }}>
-                  Liste d'emails
-                </label>
-                <textarea 
-                  value={recipients} 
-                  onChange={(e) => setRecipients(e.target.value)} 
-                  placeholder={"contact@example.com, info@example.com, support@example.com\nou\ncontact@example.com\ninfo@example.com"}
-                  rows={6}
-                  disabled={loading}
-                  style={{ 
-                    ...styles.input, 
-                    resize: "vertical", 
-                    fontFamily: "monospace", 
-                    fontSize: 13, 
-                    padding: "12px 14px",
-                    opacity: loading ? 0.5 : 1,
-                    borderColor: exceedsLimit ? T.danger : T.border,
-                  }} 
-                />
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
-                  <p style={{ 
-                    color: exceedsLimit ? T.danger : T.textMuted, 
-                    fontSize: 11, 
-                    margin: 0,
-                    fontWeight: exceedsLimit ? 600 : 400,
-                  }}>
-                    {count} / {maxAllowed} destinataire{count !== 1 ? "s" : ""}
-                  </p>
-                </div>
-              </div>
-
-              <div>
-                <label style={{ color: T.textSub, fontSize: 14, display: "block", marginBottom: 8, fontWeight: 600 }}>
-                  Sujet
-                </label>
-                <input 
-                  value={subject} 
-                  onChange={(e) => setSubject(e.target.value)} 
-                  placeholder="Ex: Newsletter de janvier 2026"
-                  disabled={loading}
-                  style={{ ...styles.input, opacity: loading ? 0.5 : 1 }} 
-                />
-              </div>
-
-              <div>
-                <label style={{ color: T.textSub, fontSize: 14, display: "block", marginBottom: 8, fontWeight: 600 }}>
-                  Message (HTML)
-                </label>
-                <textarea 
-                  value={html} 
-                  onChange={(e) => setHtml(e.target.value)} 
-                  placeholder={"<h1>Bonjour !</h1>\n<p>Votre message ici...</p>"}
-                  rows={8}
-                  disabled={loading}
-                  style={{ 
-                    ...styles.input, 
-                    resize: "vertical", 
-                    fontFamily: "monospace", 
-                    fontSize: 13, 
-                    padding: "12px 14px",
-                    opacity: loading ? 0.5 : 1,
-                  }} 
-                />
-              </div>
-
-              <button
-                onClick={submit}
-                disabled={loading || !count || !subject || !html || exceedsLimit}
-                style={{
-                  ...styles.btn,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
-                  alignSelf: "flex-start",
-                  minWidth: 200,
-                  opacity: (loading || !count || !subject || !html || exceedsLimit) ? 0.5 : 1,
-                  cursor: (loading || !count || !subject || !html || exceedsLimit) ? "not-allowed" : "pointer",
-                }}
-              >
-                <Send size={16} />
-                {loading ? `Envoi en cours...` : `Envoyer à ${count} destinataire${count > 1 ? "s" : ""}`}
-              </button>
-            </div>
+            <BulkTab
+              maxAllowed={maxAllowed}
+              loading={loading}
+              onSubmit={({ to, subject, html, varValues }) => {
+                setRecipients(to.join("\n"));
+                setSubject(subject);
+                setHtml(html);
+                submit(); // ta fonction d'envoi existante
+              }}
+            />
           )}
 
           {/* Tab 3: Import fichier */}
           {activeTab === "file" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <div>
-                <h3 style={{ color: T.text, fontSize: 18, fontWeight: 700, margin: "0 0 8px" }}>
-                  Import depuis un fichier
-                </h3>
-                <p style={{ color: T.textSub, fontSize: 13, margin: 0 }}>
-                  Importez vos destinataires depuis un fichier CSV ou Excel
-                </p>
-              </div>
-
-              <div>
-                <label style={{ color: T.textSub, fontSize: 14, display: "block", marginBottom: 8, fontWeight: 600 }}>
-                  Fichier de destinataires
-                </label>
-                
-                {uploadedFile ? (
-                  <div style={{ 
-                    display: "flex", 
-                    alignItems: "center", 
-                    gap: 10, 
-                    padding: "12px 16px", 
-                    background: T.primaryLight, 
-                    border: `1px solid ${T.primary}`, 
-                    borderRadius: 8 
-                  }}>
-                    <FileText size={20} color={T.primary} />
-                    <div style={{ flex: 1 }}>
-                      <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: T.text }}>{uploadedFile.name}</p>
-                      <p style={{ margin: "2px 0 0", fontSize: 12, color: T.textSub }}>
-                        {count} destinataire{count > 1 ? "s" : ""} importé{count > 1 ? "s" : ""}
-                      </p>
-                    </div>
-                    <button 
-                      onClick={removeFile} 
-                      style={{ background: "none", border: "none", color: T.danger, cursor: "pointer", padding: 4 }}
-                    >
-                      <X size={18} />
-                    </button>
-                  </div>
-                ) : (
-                  <label style={{ 
-                    display: "flex", 
-                    flexDirection: "column",
-                    alignItems: "center", 
-                    justifyContent: "center", 
-                    gap: 12,
-                    padding: "40px 20px", 
-                    border: `2px dashed ${T.border}`, 
-                    borderRadius: 8, 
-                    cursor: "pointer",
-                    transition: "all 0.2s",
-                    background: T.bg,
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.borderColor = T.primary;
-                    e.currentTarget.style.background = T.primaryLight;
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.borderColor = T.border;
-                    e.currentTarget.style.background = T.bg;
-                  }}
-                  >
-                    <input 
-                      ref={fileInputRef}
-                      type="file" 
-                      accept=".csv,.xlsx,.xls" 
-                      onChange={handleFileUpload}
-                      style={{ display: "none" }}
-                    />
-                    <Upload size={40} color={T.textSub} />
-                    <div style={{ textAlign: "center" }}>
-                      <p style={{ margin: 0, fontSize: 14, color: T.text, fontWeight: 600 }}>
-                        Cliquez pour importer un fichier
-                      </p>
-                      <p style={{ margin: "6px 0 0", fontSize: 12, color: T.textMuted }}>
-                        CSV ou Excel (.xlsx, .xls)
-                      </p>
-                    </div>
-                  </label>
-                )}
-                <p style={{ margin: "8px 0 0", fontSize: 11, color: T.textMuted }}>
-                  📄 Format attendu : une adresse email par ligne (première colonne)
-                </p>
-              </div>
-
-              {count > 0 && (
-                <>
-                  <div>
-                    <label style={{ color: T.textSub, fontSize: 14, display: "block", marginBottom: 8, fontWeight: 600 }}>
-                      Sujet de l'email
-                    </label>
-                    <input 
-                      value={subject} 
-                      onChange={(e) => setSubject(e.target.value)} 
-                      placeholder="Ex: Newsletter de janvier 2026"
-                      disabled={loading}
-                      style={{ ...styles.input, opacity: loading ? 0.5 : 1 }} 
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ color: T.textSub, fontSize: 14, display: "block", marginBottom: 8, fontWeight: 600 }}>
-                      Corps de l'email (HTML)
-                    </label>
-                    <textarea 
-                      value={html} 
-                      onChange={(e) => setHtml(e.target.value)} 
-                      placeholder={"<h1>Bonjour !</h1>\n<p>Votre message...</p>"}
-                      rows={8}
-                      disabled={loading}
-                      style={{ 
-                        ...styles.input, 
-                        resize: "vertical", 
-                        fontFamily: "monospace", 
-                        fontSize: 13, 
-                        padding: "12px 14px",
-                        opacity: loading ? 0.5 : 1,
-                      }} 
-                    />
-                  </div>
-
-                  <button
-                    onClick={submit}
-                    disabled={loading || !count || !subject || !html || exceedsLimit}
-                    style={{
-                      ...styles.btn,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 8,
-                      alignSelf: "flex-start",
-                      minWidth: 200,
-                      opacity: (loading || !count || !subject || !html || exceedsLimit) ? 0.5 : 1,
-                      cursor: (loading || !count || !subject || !html || exceedsLimit) ? "not-allowed" : "pointer",
-                    }}
-                  >
-                    <Send size={16} />
-                    {loading ? `Envoi en cours...` : `Envoyer à ${count} destinataire${count > 1 ? "s" : ""}`}
-                  </button>
-                </>
-              )}
-            </div>
+            <FileTab
+              maxAllowed={maxAllowed}
+              loading={loading}
+              onSubmit={({ to, subject, html, varValues }) => {
+                setRecipients(to.join("\n"));
+                setSubject(subject);
+                setHtml(html);
+                submit();
+              }}
+            />
           )}
+          
         </div>
       </div>
     </div>

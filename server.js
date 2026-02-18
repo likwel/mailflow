@@ -11,6 +11,8 @@ const dashboardRoutes = require("./routes/dashboard");
 const templateRoutes = require("./routes/templates");
 const plansRoutes = require("./routes/plans");
 const contactRoutes = require("./routes/contacts");
+const contactListsRoutes = require("./routes/contactLists");
+
 const automationRoutes = require("./routes/automations");
 
 const app = express();
@@ -29,6 +31,8 @@ app.use("/dashboard/templates", templateRoutes);
 
 app.use("/plans", plansRoutes);
 app.use("/contacts", contactRoutes);
+
+app.use("/contact-lists", contactListsRoutes);
 
 app.use("/automations", automationRoutes);
 

@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { T, styles } from "../../theme";
 import Modal from "../../components/Modal";
 import client from "../../api/client";
-import { Plus, Eye, Edit2, Trash2, Save, X, Copy, Check } from "lucide-react";
+import { Plus, Eye, Edit2, Trash2, Save, X, Copy, Check, FileText, Mail, MailOpen } from "lucide-react";
 
 export default function Templates() {
   const [list, setList] = useState([]);
@@ -376,7 +376,9 @@ export default function Templates() {
                     gap: 12,
                     marginBottom: 8
                   }}>
-                    <h3 style={{
+                    <h3 
+                    className="truncate max-w-[150px] inline-block"
+                    style={{
                       color: T.text,
                       fontSize: 16,
                       fontWeight: 700,
@@ -386,7 +388,14 @@ export default function Templates() {
                       alignItems: "center",
                       gap: 8
                     }}>
-                      {t.type === "SYSTEM" ? "📧" : "✉️"} {t.name}
+                      <>
+                        {t.type === "SYSTEM" ? (
+                          <MailOpen size={16} className="inline mr-1" />
+                        ) : (
+                          <Mail size={16} className="inline mr-1" />
+                        )}
+                        {t.name}
+                      </>
                     </h3>
 
                     <span
@@ -421,8 +430,8 @@ export default function Templates() {
                     alignItems: "center",
                     gap: 6
                   }}>
-                    <span style={{ fontSize: 16 }}>📝</span>
-                    <span style={{ fontStyle: "italic" }}>{t.subject}</span>
+                    <FileText size={16} />
+                    <span style={{ fontStyle: "normal" }}>{t.subject}</span>
                   </p>
                 </div>
 
@@ -545,7 +554,7 @@ export default function Templates() {
                       </span>
                     </div>
 
-                    <div>
+                    <div style={{ justifySelf: "end" }}>
                       <span style={{
                         fontSize: 10,
                         color: T.textMuted,
@@ -627,7 +636,7 @@ export default function Templates() {
                         }}
                         style={{
                           background: "transparent",
-                          border: `2px solid ${T.primary}`,
+                          border: `1px solid ${T.primary}`,
                           borderRadius: 8,
                           padding: "10px 14px",
                           cursor: "pointer",
@@ -660,7 +669,7 @@ export default function Templates() {
                         }}
                         style={{
                           background: "transparent",
-                          border: `2px solid ${T.danger}`,
+                          border: `1px solid ${T.danger}`,
                           borderRadius: 8,
                           padding: "10px 14px",
                           cursor: "pointer",
