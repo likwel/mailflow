@@ -306,14 +306,37 @@ model Workflow {
   id          String   @id @default(cuid())
   name        String
   description String?
-  status      String   @default("draft") // draft, active, inactive
-  trigger     Json     // Config du déclencheur
-  actions     Json     // Actions à effectuer
-  stats       Json?    // Statistiques simples
+  status      String   @default("draft")   // draft | active | inactive
+  template    String   @default("blank")   // blank | welcome | reengagement | abandoned
+
+  // ── Anciens champs conservés ──────────────────────
+  trigger     Json     @default("{}")      // config déclencheur (ancien)
+  actions     Json     @default("[]")      // actions (ancien)
+  stats       Json?                        // stats simples (ancien)
+
+  // ── Nouveaux champs canvas n8n ────────────────────
+  nodes       Json     @default("[]")      // nœuds du canvas
+  edges       Json     @default("[]")      // connexions entre nœuds
+
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  executions  WorkflowExecution[]
+
   @@index([userId])
+}
+
+model WorkflowExecution {
+  id           String    @id @default(cuid())
+  workflowId   String
+  workflow     Workflow  @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  status       String    @default("running")  // running | success | error
+  nodeStatuses Json      @default("{}")       // { nodeId: "running" | "success" | "error" }
+  error        String?
+  startedAt    DateTime  @default(now())
+  finishedAt   DateTime?
+
+  @@index([workflowId])
 }

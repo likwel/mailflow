@@ -7,7 +7,8 @@ import {
     Copy, Trash2, Settings, Edit, RefreshCw
 } from "lucide-react";
 
-import CreateWorkflowModal from "../../components/CreateWorkflowModal";
+import CreateWorkflowModal from "../../components/automations/CreateWorkflowModal";
+import WorkflowEditor from "../../components/automations/WorkflowEditor";
 
 export default function Automations() {
     const [activeTab, setActiveTab] = useState("workflows");
@@ -16,6 +17,7 @@ export default function Automations() {
     const [search, setSearch] = useState("");
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [editingWorkflow, setEditingWorkflow] = useState(null);
+    const [openEditor, setOpenEditor] = useState(null); // workflow ouvert dans l'éditeur
 
     const tabs = [
         {
@@ -94,6 +96,20 @@ export default function Automations() {
         w.name.toLowerCase().includes(search.toLowerCase())
     );
 
+    // ── Si un workflow est ouvert → plein écran ──────────
+    if (openEditor !== null) {
+        return (
+        <WorkflowEditor
+            workflow={openEditor}
+            onClose={() => setOpenEditor(null)}
+            onSave={(updated) => {
+            fetchWorkflows();
+            setOpenEditor(null);
+            }}
+        />
+        );
+    }
+
     return (
         <>
         <div style={{ display: "flex", flexDirection: "column", gap: 20}}>
@@ -130,7 +146,7 @@ export default function Automations() {
 
                 <button
                     onClick={() => {
-                        setEditingWorkflow(null);
+                        // setEditingWorkflow(null);
                         setShowCreateModal(true);
                     }}
                     style={{
@@ -234,6 +250,7 @@ export default function Automations() {
                         onToggleStatus={toggleWorkflowStatus}
                         onDuplicate={duplicateWorkflow}
                         onDelete={deleteWorkflow}
+                        onEdit={workflow => setOpenEditor(workflow)}
                     />
                 )}
                 {activeTab === "templates" && <TemplatesTab />}
@@ -242,279 +259,190 @@ export default function Automations() {
         </div>
 
         {showCreateModal && (
-        <CreateWorkflowModal
-            workflow={editingWorkflow}
-            onClose={() => {
-            setShowCreateModal(false);
-            setEditingWorkflow(null);
-            }}
-            onSave={() => {
-            fetchWorkflows();
-            setShowCreateModal(false);
-            setEditingWorkflow(null);
-            }}
-        />
-        )}
+            <CreateWorkflowModal
+                onClose={() => setShowCreateModal(false)}
+                onCreate={(data) => {
+                setShowCreateModal(false);
+                setOpenEditor(data); // ouvre directement l'éditeur
+                }}
+            />
+            )}
+
         </>
     );
 }
 
-// ========== WORKFLOWS TAB ==========
-function WorkflowsTab({ workflows, loading, onToggleStatus, onDuplicate, onDelete }) {
-    if (loading) {
-        return (
-            <div style={{ padding: 80, textAlign: "center" }}>
-                <RefreshCw
-                    size={48}
-                    color={T.textSub}
-                    style={{ animation: "spin 1s linear infinite", marginBottom: 16 }}
-                />
-                <p style={{ color: T.textSub, fontSize: 16 }}>
-                    Chargement des workflows...
-                </p>
-            </div>
-        );
-    }
-
-    if (workflows.length === 0) {
-        return (
-            <div style={{ padding: 80, textAlign: "center" }}>
-                <Workflow size={64} color={T.textMuted} style={{ marginBottom: 20, opacity: 0.3 }} />
-                <h3 style={{ fontSize: 20, fontWeight: 600, color: T.text, margin: "0 0 8px" }}>
-                    Aucun workflow
-                </h3>
-                <p style={{ color: T.textSub, fontSize: 15, margin: "0 0 24px" }}>
-                    Créez votre premier workflow pour automatiser vos emails
-                </p>
-                <button
-                    style={{
-                        padding: "12px 24px",
-                        background: T.primaryLight,
-                        color: T.primary,
-                        border: `1px solid ${T.primaryGray}`,
-                        borderRadius: 10,
-                        cursor: "pointer",
-                        fontSize: 14,
-                        fontWeight: 600,
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 8
-                    }}
-                >
-                    <Plus size={17} />
-                    Créer un workflow
-                </button>
-            </div>
-        );
-    }
-
-    return (
-        <div style={{ padding: 24 }}>
-            <div style={{ display: "grid", gap: 16 }}>
-                {workflows.map(workflow => (
-                    <div
-                        key={workflow.id}
-                        style={{
-                            padding: 24,
-                            background: "#fff",
-                            border: `1px solid ${T.border}`,
-                            borderRadius: 12,
-                            transition: "all 0.2s"
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = T.primary;
-                            e.currentTarget.style.boxShadow = "0 4px 12px rgba(99, 102, 241, 0.15)";
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = T.border;
-                            e.currentTarget.style.boxShadow = "none";
-                        }}
-                    >
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
-                            <div style={{ flex: 1 }}>
-                                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
-                                    <h3 style={{ fontSize: 18, fontWeight: 700, color: T.text, margin: 0 }}>
-                                        {workflow.name}
-                                    </h3>
-                                    <span style={{
-                                        padding: "4px 12px",
-                                        background: workflow.status === "active" ? T.success + "20" : T.textSub + "20",
-                                        color: workflow.status === "active" ? T.success : T.textSub,
-                                        borderRadius: 12,
-                                        fontSize: 12,
-                                        fontWeight: 600
-                                    }}>
-                                        {workflow.status === "active" ? "✓ Actif" : workflow.status === "draft" ? "📝 Brouillon" : "⏸ Inactif"}
-                                    </span>
-                                </div>
-                                <p style={{ color: T.textSub, fontSize: 14, margin: 0 }}>
-                                    {workflow.description || "Aucune description"}
-                                </p>
-                            </div>
-
-                            {/* Actions */}
-                            <div style={{ display: "flex", gap: 8 }}>
-                                <button
-                                    onClick={() => onToggleStatus(workflow.id, workflow.status)}
-                                    style={{
-                                        padding: 8,
-                                        background: "transparent",
-                                        border: `1px solid ${T.border}`,
-                                        borderRadius: 8,
-                                        cursor: "pointer",
-                                        color: T.textSub,
-                                        transition: "all 0.2s",
-                                        display: "flex",
-                                        alignItems: "center"
-                                    }}
-                                    title={workflow.status === "active" ? "Désactiver" : "Activer"}
-                                    onMouseEnter={(e) => {
-                                        e.target.style.background = T.primaryLight;
-                                        e.target.style.borderColor = T.primary;
-                                        e.target.style.color = T.primary;
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.target.style.background = "transparent";
-                                        e.target.style.borderColor = T.border;
-                                        e.target.style.color = T.textSub;
-                                    }}
-                                >
-                                    {workflow.status === "active" ? <Pause size={16} /> : <Play size={16} />}
-                                </button>
-                                <button
-                                    onClick={() => onDuplicate(workflow)}
-                                    style={{
-                                        padding: 8,
-                                        background: "transparent",
-                                        border: `1px solid ${T.border}`,
-                                        borderRadius: 8,
-                                        cursor: "pointer",
-                                        color: T.textSub,
-                                        transition: "all 0.2s",
-                                        display: "flex",
-                                        alignItems: "center"
-                                    }}
-                                    title="Dupliquer"
-                                    onMouseEnter={(e) => {
-                                        e.target.style.background = T.primaryLight;
-                                        e.target.style.borderColor = T.primary;
-                                        e.target.style.color = T.primary;
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.target.style.background = "transparent";
-                                        e.target.style.borderColor = T.border;
-                                        e.target.style.color = T.textSub;
-                                    }}
-                                >
-                                    <Copy size={16} />
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        setEditingWorkflow(workflow);
-                                        setShowCreateModal(true);
-                                    }}
-                                    style={{
-                                        padding: 8,
-                                        background: "transparent",
-                                        border: `1px solid ${T.border}`,
-                                        borderRadius: 8,
-                                        cursor: "pointer",
-                                        color: T.textSub,
-                                        transition: "all 0.2s",
-                                        display: "flex",
-                                        alignItems: "center"
-                                    }}
-                                    title="Modifier"
-                                    onMouseEnter={(e) => {
-                                        e.target.style.background = T.primaryLight;
-                                        e.target.style.borderColor = T.primary;
-                                        e.target.style.color = T.primary;
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.target.style.background = "transparent";
-                                        e.target.style.borderColor = T.border;
-                                        e.target.style.color = T.textSub;
-                                    }}
-                                >
-                                    <Edit size={16} />
-                                </button>
-                                <button
-                                    onClick={() => onDelete(workflow.id)}
-                                    style={{
-                                        padding: 8,
-                                        background: "transparent",
-                                        border: `1px solid ${T.border}`,
-                                        borderRadius: 8,
-                                        cursor: "pointer",
-                                        color: T.textSub,
-                                        transition: "all 0.2s",
-                                        display: "flex",
-                                        alignItems: "center"
-                                    }}
-                                    title="Supprimer"
-                                    onMouseEnter={(e) => {
-                                        e.target.style.background = T.danger + "15";
-                                        e.target.style.borderColor = T.danger;
-                                        e.target.style.color = T.danger;
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.target.style.background = "transparent";
-                                        e.target.style.borderColor = T.border;
-                                        e.target.style.color = T.textSub;
-                                    }}
-                                >
-                                    <Trash2 size={16} />
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Stats */}
-                        <div style={{
-                            display: "grid",
-                            gridTemplateColumns: "repeat(4, 1fr)",
-                            gap: 16,
-                            marginTop: 20,
-                            paddingTop: 20,
-                            borderTop: `1px solid ${T.border}`
-                        }}>
-                            <div>
-                                <p style={{ fontSize: 12, color: T.textSub, margin: "0 0 4px" }}>Envoyés</p>
-                                <p style={{ fontSize: 20, fontWeight: 700, color: T.text, margin: 0 }}>
-                                    {workflow.stats?.sent || 0}
-                                </p>
-                            </div>
-                            <div>
-                                <p style={{ fontSize: 12, color: T.textSub, margin: "0 0 4px" }}>Ouverts</p>
-                                <p style={{ fontSize: 20, fontWeight: 700, color: T.primary, margin: 0 }}>
-                                    {workflow.stats?.openRate || 0}%
-                                </p>
-                            </div>
-                            <div>
-                                <p style={{ fontSize: 12, color: T.textSub, margin: "0 0 4px" }}>Clics</p>
-                                <p style={{ fontSize: 20, fontWeight: 700, color: T.success, margin: 0 }}>
-                                    {workflow.stats?.clickRate || 0}%
-                                </p>
-                            </div>
-                            <div>
-                                <p style={{ fontSize: 12, color: T.textSub, margin: "0 0 4px" }}>Conversions</p>
-                                <p style={{ fontSize: 20, fontWeight: 700, color: T.text, margin: 0 }}>
-                                    {workflow.stats?.conversions || 0}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            <style>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
-        </div>
-    );
+// ─── ActionBtn réutilisable ───────────────────────────
+function ActionBtn({ children, onClick, title, danger }) {
+  return (
+    <button
+      onClick={onClick} title={title}
+      style={{
+        width: 34, height: 34,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        background: "transparent", border: `1px solid ${T.border}`,
+        borderRadius: 8, cursor: "pointer", color: T.textSub,
+        transition: "all .15s", flexShrink: 0,
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.background  = danger ? "#fff1f2" : T.primaryLight;
+        e.currentTarget.style.borderColor = danger ? T.danger  : T.primary;
+        e.currentTarget.style.color       = danger ? T.danger  : T.primary;
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.background  = "transparent";
+        e.currentTarget.style.borderColor = T.border;
+        e.currentTarget.style.color       = T.textSub;
+      }}>
+      {children}
+    </button>
+  );
 }
+
+// ─── Status badge ─────────────────────────────────────
+const WF_STATUS = {
+  active:   { bg: "#d1fae5", color: "#065f46", dot: "#10b981", label: "Actif"     },
+  draft:    { bg: "#fef9c3", color: "#854d0e", dot: "#eab308", label: "Brouillon" },
+  inactive: { bg: "#f1f5f9", color: "#475569", dot: "#94a3b8", label: "Inactif"   },
+};
+
+function WFStatusBadge({ status }) {
+  const s = WF_STATUS[status] || WF_STATUS.inactive;
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", gap: 5,
+      background: s.bg, color: s.color,
+      border: `1px solid ${s.color}25`,
+      borderRadius: 99, fontSize: 11, fontWeight: 700,
+      padding: "3px 10px 3px 7px", whiteSpace: "nowrap",
+    }}>
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.dot, flexShrink: 0 }}/>
+      {s.label}
+    </span>
+  );
+}
+
+// ─── WorkflowsTab ────────────────────────────────────
+function WorkflowsTab({ workflows, loading, onToggleStatus, onDuplicate, onDelete, onEdit }) {
+
+  if (loading) return (
+    <div style={{ padding: 80, textAlign: "center" }}>
+      <RefreshCw size={40} color={T.textSub} style={{ animation: "spin 1s linear infinite", marginBottom: 14 }}/>
+      <p style={{ color: T.textSub, fontSize: 15 }}>Chargement des workflows...</p>
+      <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
+
+  if (workflows.length === 0) return (
+    <div style={{ padding: 80, textAlign: "center" }}>
+      <Workflow size={52} color={T.border} style={{ marginBottom: 16, opacity: .4 }}/>
+      <h3 style={{ fontSize: 18, fontWeight: 700, color: T.text, margin: "0 0 8px" }}>Aucun workflow</h3>
+      <p style={{ color: T.textSub, fontSize: 14, margin: 0 }}>Créez votre premier workflow pour automatiser vos emails</p>
+    </div>
+  );
+
+  return (
+    <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
+      {workflows.map(workflow => (
+        <div
+          key={workflow.id}
+          style={{
+            background: "#fff",
+            border: `1px solid ${T.border}`,
+            borderRadius: 14,
+            overflow: "hidden",
+            transition: "all .2s",
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.borderColor = T.primary;
+            e.currentTarget.style.boxShadow = "0 4px 16px rgba(99,102,241,.12)";
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.borderColor = T.border;
+            e.currentTarget.style.boxShadow = "none";
+          }}>
+
+          {/* ── Bande couleur selon statut ── */}
+          {/* <div style={{
+            height: 2,
+            background: workflow.status === "active" ? "#10b981" : workflow.status === "draft" ? "#eab308" : "#e2e8f0"
+          }}/> */}
+
+          <div style={{ padding: "16px 20px" }}>
+            {/* ── Header ── */}
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
+
+              {/* Icône */}
+              <div style={{
+                width: 44, height: 44, borderRadius: 11, flexShrink: 0,
+                background: "#ede9fe",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <Workflow size={20} color="#6366f1"/>
+              </div>
+
+              {/* Infos */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 4 }}>
+                  <h3 style={{ fontSize: 15, fontWeight: 700, color: T.text, margin: 0 }}>
+                    {workflow.name}
+                  </h3>
+                  <WFStatusBadge status={workflow.status}/>
+                </div>
+                <p style={{ color: T.textSub, fontSize: 13, margin: 0, lineHeight: 1.5 }}>
+                  {workflow.description || "Aucune description"}
+                </p>
+                <p style={{ color: T.textSub, fontSize: 11, margin: "6px 0 0" }}>
+                  Mis à jour le {new Date(workflow.updatedAt).toLocaleDateString("fr-FR")}
+                </p>
+              </div>
+
+              {/* Actions */}
+              <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                <ActionBtn
+                  title={workflow.status === "active" ? "Désactiver" : "Activer"}
+                  onClick={() => onToggleStatus(workflow.id, workflow.status)}>
+                  {workflow.status === "active" ? <Pause size={15}/> : <Play size={15}/>}
+                </ActionBtn>
+                <ActionBtn title="Dupliquer" onClick={() => onDuplicate(workflow)}>
+                  <Copy size={15}/>
+                </ActionBtn>
+                <ActionBtn title="Modifier" onClick={() => onEdit(workflow)}>
+                  <Edit size={15}/>
+                </ActionBtn>
+                <ActionBtn title="Supprimer" danger onClick={() => onDelete(workflow.id)}>
+                  <Trash2 size={15}/>
+                </ActionBtn>
+              </div>
+            </div>
+
+            {/* ── Stats ── */}
+            <div style={{
+              display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12,
+              marginTop: 16, paddingTop: 16, borderTop: `1px solid ${T.border}`,
+            }}>
+              {[
+                { label: "Envoyés",     value: workflow.stats?.sent        || 0,    color: T.text    },
+                { label: "Ouverts",     value: `${workflow.stats?.openRate  || 0}%`, color: T.primary },
+                { label: "Clics",       value: `${workflow.stats?.clickRate || 0}%`, color: "#10b981" },
+                { label: "Conversions", value: workflow.stats?.conversions  || 0,    color: "#f59e0b" },
+              ].map(s => (
+                <div key={s.label} style={{
+                  padding: "10px 12px", borderRadius: 8,
+                  background: "#f8fafc", textAlign: "center",
+                }}>
+                  <p style={{ fontSize: 11, color: T.textSub, margin: "0 0 4px", fontWeight: 600 }}>{s.label}</p>
+                  <p style={{ fontSize: 18, fontWeight: 800, color: s.color, margin: 0 }}>{s.value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 
 // ========== TEMPLATES TAB ==========
 function TemplatesTab() {
