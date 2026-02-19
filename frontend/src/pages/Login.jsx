@@ -3,7 +3,7 @@
 // =====================================================
 import { useState } from "react";
 import { useAuth } from "../hooks/useAuth";
-import { Navigate, Link } from "react-router-dom";
+import { Navigate, Link , useNavigate } from "react-router-dom";
 import { T, styles } from "../theme";
 
 export default function Login() {
@@ -12,6 +12,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const navigate = useNavigate();
 
   if (loading) {
     return (
@@ -54,12 +55,15 @@ export default function Login() {
       }}>
         {/* Logo */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 32 }}>
-          <div style={{
-            width: 42, height: 42, borderRadius: 11,
-            background: T.primary,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            color: "#fff", fontWeight: 700, fontSize: 20,
-          }}>
+          <div 
+            onClick={() => navigate("/")}
+            style={{
+              width: 42, height: 42, borderRadius: 11,
+              background: T.primary,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: "#fff", fontWeight: 700, fontSize: 20,
+              cursor: 'pointer'
+            }}>
             <img
               src="../public/logo.png"
               alt="Logo"

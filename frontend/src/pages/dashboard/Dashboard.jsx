@@ -3,6 +3,7 @@
 // =====================================================
 import { useState, useEffect } from "react";
 import { useAuth } from "../../hooks/useAuth";
+import { Navigate, Link , useNavigate } from "react-router-dom";
 import { T } from "../../theme";
 import Sidebar from "../../components/Sidebar";
 import Header from "../../components/Header";
@@ -21,6 +22,8 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [page, setPage] = useState("overview");
   const [isMobile, setIsMobile] = useState(false);
+
+  if (!user) return <Navigate to="/login" replace />;
 
   const Page = PAGES[page] || Overview;
 
