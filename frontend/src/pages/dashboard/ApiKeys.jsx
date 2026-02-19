@@ -4,7 +4,14 @@
 import { useState, useEffect } from "react";
 import { T, styles } from "../../theme";
 import client from "../../api/client";
-import { Plus, Copy, Check, Power, Trash2, Key, AlertCircle } from "lucide-react";
+import { Plus, Copy, Check, Power, Trash2, Key, AlertCircle, LayoutList, CheckCircle2 , CircleOff } from "lucide-react";
+import CustomBadge from "../../components/ui/CustomBadge";
+
+const tabs = [
+  { id: "tous",   label: "Tous",               icon: LayoutList  },
+  { id: "active", label: "Actif",             icon: CheckCircle2  },
+  { id: "inactive", label: "Inactif",       icon: CircleOff },
+];
 
 export default function ApiKeys() {
   const [keys, setKeys] = useState([]);
@@ -15,6 +22,7 @@ export default function ApiKeys() {
   const [creating, setCreating] = useState(false);
   const [rawKey, setRawKey] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState("tous"); // manual, bulk, template
 
   useEffect(() => {
     fetchKeys();
@@ -78,6 +86,13 @@ export default function ApiKeys() {
     setTimeout(() => setCopied(false), 2000);
   }
 
+  const filteredKeys = keys.filter(k => {
+    if (activeTab === "tous")     return true;
+    if (activeTab === "active")   return k.isActive === true  || k.isActive === 1;
+    if (activeTab === "inactive") return k.isActive === false || k.isActive === 0;
+    return true;
+  });
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -91,7 +106,7 @@ export default function ApiKeys() {
         <button 
           onClick={() => setShowForm(!showForm)} 
           style={{ 
-            ...styles.btn, 
+            ...styles.btnGray, 
             display: "flex", 
             alignItems: "center", 
             gap: 6 
@@ -100,6 +115,34 @@ export default function ApiKeys() {
           <Plus size={16} />
           Nouvelle clé
         </button>
+      </div>
+
+
+      <div style={{ display:"flex", background:"#fff" , padding:5, border:'1px solid rgb(226, 230, 235)', borderRadius : 6 }}>
+        <div style={{ display:"flex", background:"#f1f5f9", padding :3 , borderRadius : 6}}>
+        {tabs.map(tab => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                display:"flex", alignItems:"center", justifyContent:"center", gap:6,
+                padding:"10px 14px", borderRadius:6, border:"none", cursor:"pointer",
+                fontSize:".9rem", fontWeight:700,
+                background: isActive ? "#fff" : "transparent",
+                color: isActive ? T.primary : T.textSub,
+                boxShadow: isActive ? "0 1px 4px rgba(0,0,0,.08)" : "none",
+                transition:"all .15s",
+                borderBottom : 'none'
+              }}>
+              <Icon size={15}/>
+              {tab.label}
+            </button>
+          );
+        })}
+        </div>
       </div>
 
       {/* Erreur */}
@@ -214,14 +257,14 @@ export default function ApiKeys() {
       {/* Liste des clés */}
       {!loading && (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {keys.length === 0 ? (
+          {filteredKeys.length === 0 ? (
             <div style={{ ...styles.card, padding: 40, textAlign: "center" }}>
               <Key size={40} color={T.textMuted} style={{ marginBottom: 12 }} />
               <p style={{ color: T.textSub, fontSize: 14, margin: 0 }}>Aucune clé API créée</p>
               <p style={{ color: T.textMuted, fontSize: 12, margin: "4px 0 0" }}>Créez votre première clé pour commencer</p>
             </div>
           ) : (
-            keys.map((k) => (
+            filteredKeys.map((k) => (
               <div 
                 key={k.id} 
                 style={{ 
@@ -244,7 +287,8 @@ export default function ApiKeys() {
                       background: k.isActive ? T.successLight : T.bg, 
                       color: k.isActive ? T.success : T.textSub 
                     }}>
-                      {k.isActive ? "ACTIVE" : "INACTIVE"}
+                      <CustomBadge status={k.isActive ? "ACTIVE" : "INACTIVE"}/>
+                      {/* {k.isActive ? "ACTIVE" : "INACTIVE"} */}
                     </span>
                   </div>
                   <code style={{ 

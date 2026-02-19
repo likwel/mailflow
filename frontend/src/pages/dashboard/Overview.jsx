@@ -15,6 +15,8 @@ import {
   FiKey
 } from "react-icons/fi";
 
+import CustomBadge from "../../components/ui/CustomBadge";
+
 // Mock logs pour l'aperçu rapide
 const mockLogs_old = [
   { id: 1, to: "user1@ex.com", subject: "Bienvenue !",          status: "SENT",   date: new Date(Date.now() - 1e6) },
@@ -158,7 +160,7 @@ export default function Overview() {
           <div key={l.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: `1px solid ${T.border}` }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <div style={{minWidth:80}}>
-                <Badge status={l.status} />
+                <CustomBadge status={l.status} />
               </div>
               <div>
                 <p style={{ color: T.text, fontSize: 13, margin: 0, fontWeight: 500 }}>{l.subject}</p>

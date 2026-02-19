@@ -84,7 +84,7 @@ apiRouter.post("/send/interne", async (req, res) => {
   // Génère un bulkGroupId si plusieurs destinataires
   const bulkGroupId = to.length > 1 ? crypto.randomBytes(8).toString("hex") : null;
 
-  finalHtml = appendFooter(finalHtml, user);
+  finalHtml = appendFooter(finalHtml, quota);
 
   try {
     const logs = [];
@@ -238,8 +238,8 @@ apiRouter.post("/send", cors({
   // Génère un bulkGroupId si plusieurs destinataires
   const bulkGroupId = to.length > 1 ? crypto.randomBytes(8).toString("hex") : null;
 
-  finalHtml = appendFooter(finalHtml, user);
-  finalText = appendFooter(finalText, user);
+  finalHtml = appendFooter(finalHtml, quota);
+  finalText = appendFooter(finalText, quota);
 
   try {
     const logs = [];

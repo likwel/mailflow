@@ -86,8 +86,13 @@ export default function Header({ activePage }) {
         <div style={{ flex:1, minWidth:220, position:"relative", marginRight : 20 }}>
           <Search size={15} color={T.textSub} style={{ position:"absolute", left:11, top:"50%", transform:"translateY(-50%)" }}/>
           <input placeholder={`Rechercher dans ${PAGE_TITLES[activePage] || "Dashboard"} ...`} value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{ ...styles.input, paddingLeft:36 }}/>
+            onChange={e => setSearch(e.target.value)} 
+            style={{ ...styles.input, paddingLeft:36 }}
+            onFocus={(e) => {
+                e.target.style.borderColor = T.primary;
+                e.target.style.boxShadow = `0 0 0 3px ${T.primaryLight}`;
+            }}
+            />
         </div>
         {/* <h1
           style={{

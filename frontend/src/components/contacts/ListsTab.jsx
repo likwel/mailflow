@@ -7,6 +7,8 @@ import {
   Search, X, CheckSquare, Square, UserPlus, Upload
 } from "lucide-react";
 
+import CustomBadge from "../../components/ui/CustomBadge";
+
 // ─── Helpers UI ───────────────────────────────────────
 function Overlay({ children, onClose, wide }) {
   return (
@@ -31,34 +33,6 @@ function MenuItem({ icon, label, onClick, danger }) {
     <button onClick={onClick} style={{ display:"flex", alignItems:"center", gap:8, width:"100%", padding:"10px 14px", background:"none", border:"none", cursor:"pointer", color: danger?T.danger:T.text, fontSize:13 }}>
       {icon} {label}
     </button>
-  );
-}
-
-const STATUS_CONFIG = {
-  ACTIVE:       { bg:"#d1fae5", color:"#065f46", dot:"#10b981", label:"Actif" },
-  UNSUBSCRIBED: { bg:"#fef3c7", color:"#92400e", dot:"#f59e0b", label:"Désabonné" },
-  BOUNCED:      { bg:"#fee2e2", color:"#991b1b", dot:"#ef4444", label:"Rebond" },
-  COMPLAINED:   { bg:"#ede9fe", color:"#5b21b6", dot:"#8b5cf6", label:"Plainte" },
-  BLOCKED:      { bg:"#f1f5f9", color:"#475569", dot:"#94a3b8", label:"Bloqué" },
-};
-
-function StatusBadge({ status }) {
-  const s = STATUS_CONFIG[status] || STATUS_CONFIG.BLOCKED;
-  return (
-    <span style={{
-      display: "inline-flex", alignItems: "center", gap: 5,
-      background: s.bg, color: s.color,
-      borderRadius: 99, fontSize: 11, fontWeight: 600,
-      padding: "3px 10px 3px 7px",
-      border: `1px solid ${s.color}25`,
-      whiteSpace: "nowrap",
-    }}>
-      <span style={{
-        width: 6, height: 6, borderRadius: "50%",
-        background: s.dot, flexShrink: 0,
-      }}/>
-      {s.label}
-    </span>
   );
 }
 
@@ -188,14 +162,14 @@ function AddContactsModal({ listId, existingIds, onClose, onSave }) {
               )}
             </div>
             {c.company && <span style={{ fontSize:12, color:T.textSub, flexShrink:0 }}>{c.company}</span>}
-            <StatusBadge status={c.status}/>
+            <CustomBadge status={c.status}/>
           </div>
         ))}
       </div>
       {error && <p style={{ color:T.danger, fontSize:13, margin:"0 0 12px" }}>{error}</p>}
       <div style={{ display:"flex", gap:10, justifyContent:"flex-end" }}>
         <button onClick={onClose} style={{ ...styles.btn, background:"#fff", color:T.text, border:`1px solid ${T.border}` }}>Annuler</button>
-        <button onClick={handleAdd} disabled={!selected.length || saving} style={{ ...styles.btn, opacity: !selected.length?0.5:1 }}>
+        <button onClick={handleAdd} disabled={!selected.length || saving} style={{ ...styles.btnGray, opacity: !selected.length?0.5:1 }}>
           {saving ? "Ajout..." : `Ajouter ${selected.length > 0 ? `(${selected.length})` : ""}`}
         </button>
       </div>
@@ -436,7 +410,7 @@ function ListDetail({ listId, onBack }) {
             <Upload size={14}/> Importer CSV
           </button>
           <button onClick={() => setShowAdd(true)}
-            style={{ ...styles.btn, display:"flex", alignItems:"center", gap:6 }}>
+            style={{ ...styles.btnGray, display:"flex", alignItems:"center", gap:6 }}>
             <UserPlus size={14}/> Ajouter des contacts
           </button>
         </div>
@@ -550,7 +524,7 @@ function ListDetail({ listId, onBack }) {
                 style={{ ...styles.btn, background:"#fff", color:T.primary, border:`1px solid ${T.border}`, display:"flex", alignItems:"center", gap:6 }}>
                 <Upload size={14}/> Importer CSV
               </button>
-              <button onClick={() => setShowAdd(true)} style={{ ...styles.btn, display:"flex", alignItems:"center", gap:6 }}>
+              <button onClick={() => setShowAdd(true)} style={{ ...styles.btnGray, display:"flex", alignItems:"center", gap:6 }}>
                 <UserPlus size={14}/> Ajouter des contacts
               </button>
             </div>
@@ -598,7 +572,7 @@ function ListDetail({ listId, onBack }) {
                       <td style={{ padding:"11px 16px", color:T.text, fontWeight:500 }}>{c.email||"—"}</td>
                       <td style={{ padding:"11px 16px", color:T.textSub }}>{[c.firstName,c.lastName].filter(Boolean).join(" ")||"—"}</td>
                       <td style={{ padding:"11px 16px", color:T.textSub }}>{c.company||"—"}</td>
-                      <td style={{ padding:"11px 16px" }}><StatusBadge status={c.status}/></td>
+                      <td style={{ padding:"11px 16px" }}><CustomBadge status={c.status}/></td>
                       <td style={{ padding:"11px 16px", color:T.textSub, fontSize:12 }}>
                         {m.addedAt ? new Date(m.addedAt).toLocaleDateString("fr-FR") : "—"}
                       </td>
@@ -677,7 +651,7 @@ export default function ListsTab() {
             style={{ ...styles.input, paddingLeft:36 }}/>
         </div>
         <button onClick={() => { setEditing(null); setShowModal(true); }}
-          style={{ ...styles.btn, display:"flex", alignItems:"center", gap:6 }}>
+          style={{ ...styles.btnGray, display:"flex", alignItems:"center", gap:6 }}>
           <Plus size={15}/> Nouvelle liste
         </button>
       </div>

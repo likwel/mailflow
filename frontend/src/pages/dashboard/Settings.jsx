@@ -214,7 +214,7 @@ export default function Settings() {
             onClick={saveProfile}
             disabled={loading}
             style={{ 
-              ...styles.btn, 
+              ...styles.btnGray, 
               alignSelf: "flex-start",
               display: "flex",
               alignItems: "center",
@@ -293,7 +293,7 @@ export default function Settings() {
           onClick={saveSmtp}
           disabled={loading}
           style={{ 
-            ...styles.btn, 
+            ...styles.btnGray, 
             marginTop: 14,
             display: "flex",
             alignItems: "center",

@@ -186,7 +186,7 @@ dashRouter.post("/send-bulk", async (req, res) => {
   const bulkGroupId = crypto.randomBytes(8).toString("hex");
   const results = [];
 
-  html = appendFooter(html, user);
+  html = appendFooter(html, quota);
 
   for (const recipient of recipients) {
     try {
@@ -241,8 +241,18 @@ dashRouter.post("/send-bulk", async (req, res) => {
 // POST /dashboard/send
 dashRouter.post("/send", async (req, res) => {
   const { user } = req;
-  let { to, subject, html, text, varValues = {} } = req.body;
-  // varValues = { firstName: "Defaut", company: "N/A", ... } valeurs par défaut
+  let { to, subject, html, text, varValues } = req.body;
+
+  // ✅ Si varValues est une string, la parser en JSON
+  if (typeof varValues === "string") {
+    try { varValues = JSON.parse(varValues); }
+    catch { varValues = {}; }
+  }
+
+  // ✅ Si ce n'est pas un objet plat, reset
+  if (!varValues || typeof varValues !== "object" || Array.isArray(varValues)) {
+    varValues = {};
+  }
 
   if (!to || !Array.isArray(to) || to.length === 0)
     return res.status(400).json({ error: "Destinataires requis" });
@@ -281,18 +291,19 @@ dashRouter.post("/send", async (req, res) => {
   contactsData.forEach(c => { contactMap[c.email.toLowerCase()] = c; });
 
   // ── Fonction de remplacement des variables ──────────
-  function resolveVars(template, contact, defaults) {
+  // ✅ resolveVars — variable vide si aucune source ne la fournit
+  function resolveVars(template, contact, defaults = {}) {
     if (!template) return template;
     return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
-      // Priorité : 1) champ contact  2) customFields  3) valeur par défaut  4) variable vide
-      const c = contact || {};
+      const c      = contact || {};
       const custom = (c.customFields && typeof c.customFields === "object") ? c.customFields : {};
-      return (
-        c[key]                         ??  // champ direct (firstName, company…)
-        custom[key]                    ??  // champ personnalisé JSON
-        defaults[key]                  ??  // valeur par défaut fournie par l'UI
-        ""
-      );
+      const value  =
+        c[key]       ??  // 1. champ contact (firstName, company…)
+        custom[key]  ??  // 2. customFields JSON
+        defaults[key]??  // 3. varValues envoyés par l'UI
+        "";              // 4. variable inconnue → chaîne vide
+
+      return value;
     });
   }
 
@@ -309,7 +320,7 @@ dashRouter.post("/send", async (req, res) => {
 
       // Personnalisation du sujet et du corps pour ce destinataire
       const personalSubject = resolveVars(subject, contact, varValues);
-      const personalHtml    = resolveVars(appendFooter(html, user), contact, varValues);
+      const personalHtml    = resolveVars(appendFooter(html, quota), contact, varValues);
       const personalText    = text ? resolveVars(text, contact, varValues) : undefined;
 
       try {

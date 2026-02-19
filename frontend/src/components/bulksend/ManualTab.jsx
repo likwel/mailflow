@@ -224,6 +224,8 @@ export default function ManualTab({
   const subjectRef = useRef(null);
   const htmlRef    = useRef(null);
 
+  console.log(varValues)
+
   useEffect(() => {
     client.get("/dashboard/templates").then(r => setTemplates(r.data || [])).catch(() => {});
   }, []);
@@ -445,9 +447,10 @@ export default function ManualTab({
 
       {/* ── Bouton envoi ── */}
       <button
-        onClick={onSubmit}
+        // onClick={onSubmit}
+        onClick={() => onSubmit(varValues)}
         disabled={!canSend}
-        style={{ ...styles.btn, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, alignSelf: "flex-start", minWidth: 240, padding: "12px 24px", fontSize: 15, opacity: canSend ? 1 : 0.5, cursor: canSend ? "pointer" : "not-allowed" }}>
+        style={{ ...styles.btnGray, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, alignSelf: "flex-start", minWidth: 240, padding: "12px 24px", fontSize: 15, opacity: canSend ? 1 : 0.5, cursor: canSend ? "pointer" : "not-allowed" }}>
         <Send size={16}/>
         {loading ? "Envoi en cours..." : `Envoyer à ${count} destinataire${count > 1 ? "s" : ""}`}
       </button>

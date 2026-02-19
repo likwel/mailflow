@@ -1,11 +1,19 @@
 // =====================================================
 // src/pages/dashboard/Templates.jsx
 // =====================================================
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { T, styles } from "../../theme";
 import Modal from "../../components/Modal";
 import client from "../../api/client";
-import { Plus, Eye, Edit2, Trash2, Save, X, Copy, Check, FileText, Mail, MailOpen } from "lucide-react";
+import { Plus, Eye, Edit2, Trash2, Save, X, Copy, Check, FileText, MailOpen, Info, Mail, Users, FileSpreadsheet, LayoutList, ShieldCheck, Sparkles } from "lucide-react";
+import TemplatePreviewModal from "../../components/ui/TemplatePreviewModal";
+import CustomBadge from "../../components/ui/CustomBadge";
+
+const tabs = [
+  { id: "tous",   label: "Tous",               icon: LayoutList  },
+  { id: "system", label: "Système",             icon: ShieldCheck },
+  { id: "custom", label: "Mes templates",       icon: Sparkles    },
+];
 
 export default function Templates() {
   const [list, setList] = useState([]);
@@ -16,6 +24,8 @@ export default function Templates() {
   const [previewData, setPreviewData] = useState(null);
   const [saving, setSaving] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
+  const [copiedJson, setCopiedJson] = useState(null);
+  const [activeTab, setActiveTab] = useState("tous"); // manual, bulk, template
 
   useEffect(() => {
     fetchTemplates();
@@ -76,6 +86,38 @@ export default function Templates() {
     setTimeout(() => setCopiedId(null), 2000);
   }
 
+  function copyVarsJson(itemId, vars) {
+    const json = JSON.stringify(
+      Object.fromEntries(vars.map(v => [v, ""])),
+      null, 2
+    );
+    navigator.clipboard.writeText(json);
+    setCopiedJson(itemId);
+    setTimeout(() => setCopiedJson(null), 2000);
+  }
+
+  // ─── Helper — extraire les variables d'un item ───────
+  function extractVars(item) {
+    const set = new Set();
+    const regex = /\{\{(\w+)\}\}/g;
+    [item.name, item.subject, item.htmlBody].forEach(field => {
+      if (!field) return;
+      let m;
+      const r = new RegExp(regex.source, "g");
+      while ((m = r.exec(field)) !== null) set.add(m[1].trim());
+    });
+    return Array.from(set);
+  }
+
+  const filteredList = list.filter(t => {
+    if (activeTab === "tous")   return true;
+    if (activeTab === "system") return t.type == "SYSTEM";
+    if (activeTab === "custom") return t.type != "SYSTEM";
+    return true;
+  });
+
+  console.log(filteredList)
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -88,7 +130,7 @@ export default function Templates() {
         <button
           onClick={() => { setEd("new"); setForm({ name: "", subject: "", html: "" }); }}
           style={{
-            ...styles.btn,
+            ...styles.btnGray,
             display: "flex",
             alignItems: "center",
             gap: 6
@@ -99,6 +141,33 @@ export default function Templates() {
         </button>
       </div>
 
+      <div style={{ display:"flex", background:"#fff" , padding:5, border:'1px solid rgb(226, 230, 235)', borderRadius : 6 }}>
+        <div style={{ display:"flex", background:"#f1f5f9", padding :3 , borderRadius : 6}}>
+        {tabs.map(tab => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                display:"flex", alignItems:"center", justifyContent:"center", gap:6,
+                padding:"10px 14px", borderRadius:6, border:"none", cursor:"pointer",
+                fontSize:".9rem", fontWeight:700,
+                background: isActive ? "#fff" : "transparent",
+                color: isActive ? T.primary : T.textSub,
+                boxShadow: isActive ? "0 1px 4px rgba(0,0,0,.08)" : "none",
+                transition:"all .15s",
+                borderBottom : 'none'
+              }}>
+              <Icon size={15}/>
+              {tab.label}
+            </button>
+          );
+        })}
+        </div>
+      </div>
+
       {/* Erreur */}
       {error && (
         <div style={{ background: T.dangerLight, border: `1px solid ${T.danger}`, borderRadius: T.radius, padding: "12px 16px" }}>
@@ -106,119 +175,11 @@ export default function Templates() {
         </div>
       )}
 
-      {/* Modal Preview */}
-      <Modal open={!!previewData} onClose={() => setPreviewData(null)} title={previewData?.name || ""}>
-
-        {/* Variables extraites de name, subject et htmlBody */}
-        {previewData && (
-          (() => {
-            const fields = [previewData.name, previewData.subject, previewData.htmlBody];
-            const regex = /{{\s*([^}]+)\s*}}/g;
-            const variablesSet = new Set();
-
-            fields.forEach(field => {
-              if (!field) return;
-              let match;
-              while ((match = regex.exec(field)) !== null) {
-                variablesSet.add(match[1].trim());
-              }
-            });
-
-            const variables = Array.from(variablesSet);
-
-            if (variables.length === 0) return null;
-
-            return (
-              <div
-                style={{
-                  fontSize: '1rem',
-                  color: T.textSub,
-                  marginBottom: 10,
-                  border: `1px solid ${T.primary}`,       // bordure visible
-                  borderRadius: 6,                         // coins arrondis
-                  padding: '10px 12px',                    // espace intérieur
-                  backgroundColor: `${T.primaryLight}33`,  // fond légèrement transparent
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.05)' // légère ombre pour le relief
-                }}
-              >
-                <strong>Variables utilisées :</strong>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
-                  {variables.map((v, i) => (
-                    <span
-                      key={i}
-                      style={{
-                        background: T.primaryLight,
-                        color: T.primary,
-                        padding: "2px 6px",
-                        borderRadius: 4,
-                        fontSize: 11,
-                        fontWeight: 600
-                      }}
-                    >
-                      {v}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            );
-          })()
-        )}
-        <div
-          style={{
-            padding: '14px 16px',
-            border: `1px solid ${T.primary}`,
-            borderRadius: 8,
-            backgroundColor: `${T.primaryLight}33`, // fond légèrement transparent
-            boxShadow: '0 4px 8px rgba(0,0,0,0.08)',
-            marginBottom: 16,
-          }}
-        >
-          {/* Titre */}
-          <p style={{
-            color: T.textSub,
-            fontWeight: 700,
-            fontSize: '1.1rem',
-            margin: "0 0 8px"
-          }}>
-            <strong>Titre :</strong> {previewData?.name}
-          </p>
-
-          {/* Sujet */}
-          <p style={{
-            color: T.textSub,
-            fontWeight: 600,
-            fontSize: '1rem',
-            margin: "0 0 12px"
-          }}>
-            <strong>Sujet :</strong> {previewData?.subject}
-          </p>
-
-          {/* Corps du mail */}
-          <p style={{
-            color: T.textSub,
-            fontWeight: 600,
-            fontSize: '1rem',
-            margin: "0 0 6px"
-          }}>
-            <strong>Corps du mail :</strong>
-          </p>
-          <div style={{
-            background: T.bg,
-            border: `1px solid ${T.border}`,
-            borderRadius: 6,
-            padding: 12,
-            color: T.text,
-            fontSize: 14,
-            lineHeight: 1.6,
-            maxHeight: 250,
-            overflowY: 'auto',
-          }}
-            dangerouslySetInnerHTML={{ __html: previewData?.htmlBody || "" }}
-          />
-        </div>
-
-      </Modal>
-
+      <TemplatePreviewModal
+        previewData={previewData}
+        onClose={() => setPreviewData(null)}
+      />
+      
       {/* Formulaire edit / new */}
       {ed && (
         <div style={{ ...styles.card, padding: 20, border: `2px solid ${T.primary}` }}>
@@ -278,7 +239,7 @@ export default function Templates() {
                 onClick={save}
                 disabled={saving}
                 style={{
-                  ...styles.btn,
+                  ...styles.btnGray,
                   display: "flex",
                   alignItems: "center",
                   gap: 6,
@@ -308,8 +269,11 @@ export default function Templates() {
                 disabled={saving}
                 style={{
                   ...styles.btnOutline,
+                  color: "#ef4444",
+                  border: "1px solid #fca5a5",
                   display: "flex",
                   alignItems: "center",
+                  fontWeight: 500,
                   gap: 6,
                 }}
               >
@@ -331,7 +295,7 @@ export default function Templates() {
       {/* Grille de templates */}
       {!loading && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px,1fr))", gap: 14 }}>
-          {list.length === 0 ? (
+          {filteredList.length === 0 ? (
             <div style={{ ...styles.card, padding: 40, textAlign: "center", gridColumn: "1 / -1" }}>
               <p style={{ color: T.textSub, fontSize: 14, margin: 0 }}>Aucun template créé</p>
               <p style={{ color: T.textMuted, fontSize: 12, margin: "4px 0 0" }}>
@@ -339,7 +303,11 @@ export default function Templates() {
               </p>
             </div>
           ) : (
-            list.map((t) => (
+            filteredList.map((t) => {
+
+              const vars = extractVars(t);
+
+              return (
               <div
                 key={t.id}
                 style={{
@@ -399,24 +367,8 @@ export default function Templates() {
                       </>
                     </h3>
 
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        padding: "4px 12px",
-                        borderRadius: 16,
-                        background: t.type === "SYSTEM" ? T.primary : "#7c3aed",
-                        color: "#fff",
-                        flexShrink: 0,
-                        textTransform: "uppercase",
-                        letterSpacing: 0.5,
-                        boxShadow: t.type === "SYSTEM"
-                          ? `0 2px 8px ${T.primary}40`
-                          : "0 2px 8px #7c3aed40",
-                      }}
-                    >
-                      {t.type === "SYSTEM" ? "Système" : "Custom"}
-                    </span>
+                    <CustomBadge status={t.type}></CustomBadge>
+                    
                   </div>
 
                   <p style={{
@@ -435,6 +387,64 @@ export default function Templates() {
                     <span style={{ fontStyle: "normal" }}>{t.subject}</span>
                   </p>
                 </div>
+
+                {/* Variables de cet item */}
+                {vars.length > 0 ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 , padding : 15, paddingBottom : 2}}>
+
+                    {/* Badges + bouton copier */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                      {vars.map((v, i) => (
+                        <span key={i} style={{
+                          background: "#eff6ff", color: T.primary,
+                          border: `1px solid ${T.primary}30`,
+                          padding: "2px 8px", borderRadius: 99,
+                          fontSize: 11, fontWeight: 600,
+                        }}>
+                          {`${v}`}
+                        </span>
+                      ))}
+
+                      {/* Bouton copier avec tooltip */}
+                      <div style={{ position: "relative", marginLeft: "auto" }}>
+                        <button
+                          onClick={() => copyVarsJson(t.id, vars)}
+                          title="Copier en JSON"
+                          style={{
+                            display: "flex", alignItems: "center", gap: 5,
+                            padding: "3px 10px", borderRadius: 6, border: `1px solid ${T.border}`,
+                            background: copiedJson === t.id ? "#f0fdf4" : "#fff",
+                            color: copiedJson === t.id ? "#10b981" : T.textSub,
+                            cursor: "pointer", fontSize: 11, fontWeight: 600,
+                            transition: "all .15s",
+                          }}>
+                          {copiedJson === t.id
+                            ? <><Check size={11}/> Copié !</>
+                            : <><Copy size={11}/> Copier JSON</>
+                          }
+                        </button>
+
+                        {/* Tooltip preview */}
+                        {copiedJson === t.id && (
+                          <div style={{
+                            position: "absolute", bottom: "calc(100% + 6px)", right: 0,
+                            background: "#1e293b", color: "#fff", borderRadius: 8,
+                            padding: "8px 12px", fontSize: 11, whiteSpace: "pre",
+                            boxShadow: "0 4px 12px rgba(0,0,0,.2)", zIndex: 10,
+                            fontFamily: "monospace", lineHeight: 1.6,
+                          }}>
+                            {JSON.stringify(Object.fromEntries(vars.map(v => [v, ""])), null, 2)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <span style={{ fontSize: 12, color: T.textSub, fontStyle: "italic" }}>
+                    Aucune variable
+                  </span>
+                )}
+                
 
                 {/* Content */}
                 <div style={{ padding: "16px 10px", flex: 1 }}>
@@ -551,6 +561,7 @@ export default function Templates() {
                         color: T.text,
                         fontWeight: 600
                       }}>
+                        
                         {t.type === "SYSTEM" ? "Email système" : "Template personnalisé"}
                       </span>
                     </div>
@@ -567,23 +578,8 @@ export default function Templates() {
                       }}>
                         Statut
                       </span>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <span style={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: "50%",
-                          background: T.success,
-                          display: "inline-block",
-                          boxShadow: `0 0 8px ${T.success}60`
-                        }}></span>
-                        <span style={{
-                          fontSize: 13,
-                          color: T.success,
-                          fontWeight: 600
-                        }}>
-                          Actif
-                        </span>
-                      </div>
+                      <CustomBadge status={'ACTIVE'}></CustomBadge>
+                      
                     </div>
                   </div>
                 </div>
@@ -600,11 +596,11 @@ export default function Templates() {
                     onClick={() => setPreviewData(t)}
                     style={{
                       flex: 1,
-                      background: `linear-gradient(135deg, ${T.primary} 0%, #5558e3 100%)`,
-                      color: "#fff",
-                      border: "none",
+                      background: T.primaryLight,
+                      color: T.primary,
+                      border: `1px solid ${T.primaryGray}`,
                       borderRadius: 8,
-                      padding: "10px 16px",
+                      padding: "8px 10px",
                       cursor: "pointer",
                       fontSize: 13,
                       fontWeight: 600,
@@ -616,11 +612,11 @@ export default function Templates() {
                       boxShadow: `0 4px 12px ${T.primary}30`,
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = "translateY(-2px)";
+                      // e.currentTarget.style.transform = "translateY(-2px)";
                       e.currentTarget.style.boxShadow = `0 6px 16px ${T.primary}40`;
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = "translateY(0)";
+                      // e.currentTarget.style.transform = "translateY(0)";
                       e.currentTarget.style.boxShadow = `0 4px 12px ${T.primary}30`;
                     }}
                   >
@@ -639,7 +635,7 @@ export default function Templates() {
                           background: "transparent",
                           border: `1px solid ${T.primary}`,
                           borderRadius: 8,
-                          padding: "10px 14px",
+                          padding: "8px 10px",
                           cursor: "pointer",
                           color: T.primary,
                           fontSize: 13,
@@ -672,7 +668,7 @@ export default function Templates() {
                           background: "transparent",
                           border: `1px solid ${T.danger}`,
                           borderRadius: 8,
-                          padding: "10px 14px",
+                          padding: "8px 10px",
                           cursor: "pointer",
                           color: T.danger,
                           fontSize: 13,
@@ -698,7 +694,9 @@ export default function Templates() {
                   )}
                 </div>
               </div>
-            ))
+            )
+            })
+            
           )}
         </div>
       )}

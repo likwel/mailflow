@@ -202,7 +202,7 @@ function SaveContactsModal({ rows, onConfirm, onSkip, onClose }) {
                 Non, envoyer seulement
               </button>
               <button onClick={handleSave} disabled={saving}
-                style={{ ...styles.btn, flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:6, fontSize:14 }}>
+                style={{ ...styles.btnGray, flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:6, fontSize:14 }}>
                 <UserPlus size={15}/>
                 {saving ? "Enregistrement..." : "Oui, enregistrer"}
               </button>
@@ -533,7 +533,7 @@ export default function FileTab({ maxAllowed, loading, onSubmit }) {
 
           {/* Bouton envoi */}
           <button onClick={handleSendClick} disabled={!canSend}
-            style={{ ...styles.btn, display:"flex", alignItems:"center", justifyContent:"center", gap:8, alignSelf:"flex-start", minWidth:240, padding:"12px 24px", fontSize:15, opacity:canSend?1:.5, cursor:canSend?"pointer":"not-allowed" }}>
+            style={{ ...styles.btnGray, display:"flex", alignItems:"center", justifyContent:"center", gap:8, alignSelf:"flex-start", minWidth:240, padding:"12px 24px", fontSize:15, opacity:canSend?1:.5, cursor:canSend?"pointer":"not-allowed" }}>
             <Send size={16}/>
             {loading?"Envoi en cours...":`Envoyer à ${count} destinataire${count>1?"s":""}`}
           </button>

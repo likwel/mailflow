@@ -2,23 +2,23 @@
 import { useState, useEffect } from "react";
 import { T, styles } from "../../theme";
 import client from "../../api/client";
-import { Users, List, ListChecks } from "lucide-react";
+import { Users, List, ListChecks, Settings2 } from "lucide-react";
 import ContactsTab  from "../../components/contacts/ContactsTab";
 import ListsTab     from "../../components/contacts/ListsTab";
+
 
 function Tab({ label, icon: Icon, active, onClick }) {
   return (
     <button onClick={onClick} style={{
-      display: "flex", alignItems: "center", gap: 8,
-      fontWeight : 700,
-      padding: "10px 20px", background: "none", border: "none", cursor: "pointer",
-      paddingLeft : 0,
-      paddingRight :0,
-      borderBottom: active ? `2px solid ${T.primary}` : "2px solid transparent",
+      display:"flex", alignItems:"center", gap:6,
+      padding:"10px 14px", borderRadius:6, border:"none", cursor:"pointer",
+      fontSize:14, fontWeight:700,
+      background: active ? "#fff" : "transparent",
       color: active ? T.primary : T.textSub,
-      fontWeight: active ? 600 : 400, fontSize: 15, transition: "all .15s"
+      boxShadow: active ? "0 1px 4px rgba(0,0,0,.08)" : "none",
+      transition:"all .15s"
     }}>
-      <Icon size={16} /> {label}
+      <Icon size={15}/> {label}
     </button>
   );
 }
@@ -33,11 +33,25 @@ export default function Contacts() {
           Gérez vos contacts et vos listes de diffusion
         </p>
       </div>
-      <div style={{ borderBottom: `1px solid ${T.border}`, display: "flex" , gap : 25}}>
-        <Tab label="Contacts" icon={Users} active={activeTab === "contacts"} onClick={() => setActiveTab("contacts")}/>
-        <Tab label="Listes"   icon={ListChecks}  active={activeTab === "lists"}    onClick={() => setActiveTab("lists")} />
+      <div style={{ border: `1px solid ${T.border}`, display: "flex" , background:"#fff", padding:8, borderRadius : 6}}>
+        <div style={{ borderBottom: `1px solid ${T.border}`, display: "flex" , gap : 10, background:"#f1f5f9", padding :3 , borderRadius : 6}}>
+          <Tab label="Contacts" icon={Users} active={activeTab === "contacts"} onClick={() => setActiveTab("contacts")}/>
+          <Tab label="Listes"   icon={ListChecks}  active={activeTab === "lists"}    onClick={() => setActiveTab("lists")} />
+          <Tab label="Options"   icon={Settings2}  active={activeTab === "options"}    onClick={() => setActiveTab("options")} />
+        </div>
       </div>
-      {activeTab === "contacts" ? <ContactsTab /> : <ListsTab />}
+      {activeTab === "contacts" && <ContactsTab />}
+      {activeTab === "lists"    && <ListsTab />}
+      {activeTab === "options"  && (
+        <div style={{
+          display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
+          gap:10, padding:"40px 20px", color:T.textSub,
+        }}>
+          <Settings2 size={36} color={T.border}/>
+          <p style={{ margin:0, fontSize:14, fontWeight:500 }}>Aucune option pour le moment</p>
+          <p style={{ margin:0, fontSize:12 }}>Les options seront disponibles prochainement</p>
+        </div>
+      )}
     </div>
   );
 }

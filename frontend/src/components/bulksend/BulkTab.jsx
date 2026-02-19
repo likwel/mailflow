@@ -497,7 +497,7 @@ export default function BulkTab({ maxAllowed, loading, onSubmit }) {
       {/* ── Variables ── */}
       <section>
         <label style={{ ...lbl, marginBottom:10 }}>Variables de personnalisation</label>
-        <VariablesPanel variables={detectedVars} values={varValues} onChange={setVarValues} onImport={handleImportCSV}/>
+        <VariablesPanel variables={detectedVars} values={varValues} onChange={handleVarChange} onImport={handleImportCSV}/>
         {importedRows.length>0 && (
           <div style={{ marginTop:10, display:"flex", alignItems:"center", gap:10, padding:"10px 14px", background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:8 }}>
             <Check size={15} color="#10b981"/>
@@ -519,7 +519,7 @@ export default function BulkTab({ maxAllowed, loading, onSubmit }) {
 
       {/* ── Envoi ── */}
       <button onClick={handleSubmit} disabled={!canSend}
-        style={{ ...styles.btn, display:"flex", alignItems:"center", justifyContent:"center", gap:8, alignSelf:"flex-start", minWidth:240, padding:"12px 24px", fontSize:15, opacity:canSend?1:.5, cursor:canSend?"pointer":"not-allowed" }}>
+        style={{ ...styles.btnGray, display:"flex", alignItems:"center", justifyContent:"center", gap:8, alignSelf:"flex-start", minWidth:240, padding:"12px 24px", fontSize:15, opacity:canSend?1:.5, cursor:canSend?"pointer":"not-allowed" }}>
         <Send size={16}/>
         {loading?"Envoi en cours...":`Envoyer à ${count} destinataire${count>1?"s":""}`}
       </button>

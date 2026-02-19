@@ -117,18 +117,6 @@ export default function Automations() {
                         alignItems: "center",
                         gap: 12
                     }}>
-                        {/* <div style={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: 12,
-                            background: `linear-gradient(135deg, ${T.primary} 0%, #5558e3 100%)`,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            boxShadow: "0 4px 12px rgba(99, 102, 241, 0.3)"
-                        }}>
-                            🤖
-                        </div> */}
                         Automatisations
                     </h1>
                     <p style={{
@@ -147,12 +135,12 @@ export default function Automations() {
                     }}
                     style={{
                         padding: "10px 22px",
-                        background: `linear-gradient(135deg, ${T.primary} 0%, #5558e3 100%)`,
-                        color: "#fff",
+                        background: T.primaryLight,
+                        color: T.primary,
                         border: "none",
                         borderRadius: 10,
                         cursor: "pointer",
-                        fontSize: 14,
+                        fontSize: 13,
                         fontWeight: 600,
                         boxShadow: "0 4px 12px rgba(99, 102, 241, 0.3)",
                         display: "flex",
@@ -163,78 +151,42 @@ export default function Automations() {
                     onMouseEnter={(e) => e.target.style.transform = "translateY(-2px)"}
                     onMouseLeave={(e) => e.target.style.transform = "translateY(0)"}
                 >
-                    <Plus size={18} />
+                    <Plus size={17} />
                     Nouveau workflow
                 </button>
             </div>
 
             {/* ========== TABS ========== */}
-            <div style={{ ...styles.card, padding: 0, overflow: "hidden" }}>
-                <div style={{
-                    display: "flex",
-                    borderBottom: `2px solid ${T.border}`
-                }}>
+            <div style={{ display:"flex", background:"#fff" , padding:5, border:'1px solid rgb(226, 230, 235)', borderRadius : 6 }}>
+                    <div style={{ display:"flex", background:"#f1f5f9", padding :3 , borderRadius : 6}}>
                     {tabs.map(tab => {
-                        const Icon = tab.icon;
-                        const isActive = activeTab === tab.id;
-
-                        return (
-                            <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
-                                style={{
-                                    flex: 1,
-                                    padding: "20px 24px",
-                                    background: isActive ? T.primaryLight : "transparent",
-                                    border: "none",
-                                    borderBottom: `3px solid ${isActive ? T.primary : "transparent"}`,
-                                    cursor: "pointer",
-                                    transition: "all 0.2s",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    gap: 8
-                                }}
-                                onMouseEnter={(e) => {
-                                    if (!isActive) e.currentTarget.style.background = "#f9fafb";
-                                }}
-                                onMouseLeave={(e) => {
-                                    if (!isActive) e.currentTarget.style.background = "transparent";
-                                }}
-                            >
-                                <Icon
-                                    size={20}
-                                    color={isActive ? T.primary : T.textSub}
-                                    strokeWidth={isActive ? 2.5 : 2}
-                                />
-                                <span style={{
-                                    fontSize: 15,
-                                    fontWeight: isActive ? 700 : 600,
-                                    color: isActive ? T.primary : T.text
-                                }}>
-                                    {tab.label}
-                                </span>
-                                {tab.count !== undefined && (
-                                    <span style={{
-                                        padding: "2px 8px",
-                                        background: isActive ? T.primary : T.bg,
-                                        color: isActive ? "#fff" : T.textSub,
-                                        borderRadius: 12,
-                                        fontSize: 12,
-                                        fontWeight: 700
-                                    }}>
-                                        {tab.count}
-                                    </span>
-                                )}
-                            </button>
-                        );
+                      const Icon = tab.icon;
+                      const isActive = activeTab === tab.id;
+                      return (
+                        <button
+                          key={tab.id}
+                          onClick={() => setActiveTab(tab.id)}
+                          style={{
+                            display:"flex", alignItems:"center", justifyContent:"center", gap:6,
+                            padding:"10px 14px", borderRadius:6, border:"none", cursor:"pointer",
+                            fontSize:".9rem", fontWeight:700,
+                            background: isActive ? "#fff" : "transparent",
+                            color: isActive ? T.primary : T.textSub,
+                            boxShadow: isActive ? "0 1px 4px rgba(0,0,0,.08)" : "none",
+                            transition:"all .15s",
+                            borderBottom : 'none'
+                          }}>
+                          <Icon size={15}/>
+                          {tab.label}
+                        </button>
+                      );
                     })}
-                </div>
-            </div>
+                    </div>
+                  </div>
 
             {/* ========== SEARCH (workflows tab only) ========== */}
             {activeTab === "workflows" && (
-                <div style={{ ...styles.card, padding: 20 }}>
+                <div style={{ ...styles.card, padding: 10 }}>
                     <div style={{ position: "relative" }}>
                         <Search
                             size={18}
@@ -254,7 +206,7 @@ export default function Automations() {
                             style={{
                                 width: "93%",
                                 padding: "12px 16px 12px 44px",
-                                border: `2px solid ${T.border}`,
+                                border: `1px solid ${T.border}`,
                                 borderRadius: 10,
                                 fontSize: 14,
                                 outline: "none",
@@ -337,19 +289,19 @@ function WorkflowsTab({ workflows, loading, onToggleStatus, onDuplicate, onDelet
                 <button
                     style={{
                         padding: "12px 24px",
-                        background: `linear-gradient(135deg, ${T.primary} 0%, #5558e3 100%)`,
-                        color: "#fff",
-                        border: "none",
+                        background: T.primaryLight,
+                        color: T.primary,
+                        border: `1px solid ${T.primaryGray}`,
                         borderRadius: 10,
                         cursor: "pointer",
-                        fontSize: 15,
+                        fontSize: 14,
                         fontWeight: 600,
                         display: "inline-flex",
                         alignItems: "center",
                         gap: 8
                     }}
                 >
-                    <Plus size={18} />
+                    <Plus size={17} />
                     Créer un workflow
                 </button>
             </div>
@@ -365,7 +317,7 @@ function WorkflowsTab({ workflows, loading, onToggleStatus, onDuplicate, onDelet
                         style={{
                             padding: 24,
                             background: "#fff",
-                            border: `2px solid ${T.border}`,
+                            border: `1px solid ${T.border}`,
                             borderRadius: 12,
                             transition: "all 0.2s"
                         }}
@@ -615,7 +567,7 @@ function TemplatesTab() {
                         style={{
                             padding: 24,
                             background: "#fff",
-                            border: `2px solid ${T.border}`,
+                            border: `1px solid ${T.border}`,
                             borderRadius: 12,
                             cursor: "pointer",
                             transition: "all 0.2s"
@@ -653,7 +605,7 @@ function TemplatesTab() {
                                 padding: "10px",
                                 background: T.primaryLight,
                                 color: T.primary,
-                                border: `2px solid ${T.primary}`,
+                                border: `1px solid ${T.primaryGray}`,
                                 borderRadius: 8,
                                 cursor: "pointer",
                                 fontSize: 14,
@@ -661,8 +613,8 @@ function TemplatesTab() {
                                 transition: "all 0.2s"
                             }}
                             onMouseEnter={(e) => {
-                                e.target.style.background = T.primary;
-                                e.target.style.color = "#fff";
+                                e.target.style.background = T.primaryLight;
+                                e.target.style.color = T.primaryDark;
                             }}
                             onMouseLeave={(e) => {
                                 e.target.style.background = T.primaryLight;
@@ -711,7 +663,7 @@ function StatsTab({ workflows }) {
                         style={{
                             padding: 24,
                             background: "#fff",
-                            border: `2px solid ${T.border}`,
+                            border: `1px solid ${T.border}`,
                             borderRadius: 12,
                             transition: "all 0.2s"
                         }}

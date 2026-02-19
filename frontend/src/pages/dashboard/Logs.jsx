@@ -4,8 +4,16 @@
 import { useState, useEffect } from "react";
 import { T, styles } from "../../theme";
 import Badge from "../../components/Badge";
+import CustomBadge from "../../components/ui/CustomBadge";
 import client from "../../api/client";
-import { Search, RefreshCw, ChevronLeft, ChevronRight, X, Eye, Send, Trash2, Edit, Archive, CheckSquare, Square, Download } from "lucide-react";
+import { MailX, Search, RefreshCw, ChevronLeft, ChevronRight, X, Eye, Send, Trash2, Edit, Archive, CheckSquare, Square, Download, LayoutList, SendHorizonal, XCircle, AlertTriangle } from "lucide-react";
+
+const FILTERS = [
+  { id:"ALL",     label:"Tous",     icon:<LayoutList    size={13}/> },
+  { id:"SENT",    label:"Envoyés",  icon:<SendHorizonal size={13}/> },
+  { id:"FAILED",  label:"Échoués",  icon:<XCircle       size={13}/> },
+  { id:"BOUNCED", label:"Rebonds",  icon:<AlertTriangle size={13}/> },
+];
 
 export default function Logs() {
   const [logs, setLogs] = useState([]);
@@ -185,28 +193,24 @@ export default function Logs() {
       )}
 
       {/* Filtres */}
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "stretch" }}>
-        <div style={{ display: "flex", height: "h-full", gap: 3, background: "white", border: `1px solid ${T.border}`, borderRadius: 8, padding: 3 }}>
-          {["ALL", "SENT", "FAILED", "BOUNCED"].map((st) => (
+
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "stretch", background:"#fff", padding : 10, borderRadius:8, border: `1px solid #e2e6eb` }}>
+        
+        <div style={{ display:"flex", background:"#f1f5f9", borderRadius:8, padding:3 }}>
+          {FILTERS.map(({ id, label, icon }) => (
             <button
-              key={st}
-              onClick={() => {
-                setFilter(st);
-                setPage(1);
-                setSelectedIds(new Set()); // Reset sélection au changement de filtre
-              }}
+              key={id}
+              onClick={() => { setFilter(id); setPage(1); setSelectedIds(new Set()); }}
               style={{
-                background: filter === st ? T.primary : "transparent",
-                border: "none",
-                color: filter === st ? "#fff" : '#1e293b',
-                padding: "5px 13px",
-                borderRadius: 6,
-                cursor: "pointer",
-                fontSize: ".75rem",
-                fontWeight: 600,
-              }}
-            >
-              {st}
+                display:"flex", alignItems:"center", gap:6,
+                padding:"6px 14px", borderRadius:6, border:"none", cursor:"pointer",
+                fontSize:14, fontWeight:700,
+                background: filter === id ? "#fff" : "transparent",
+                color: filter === id ? T.primary : T.textSub,
+                boxShadow: filter === id ? "0 1px 4px rgba(0,0,0,.08)" : "none",
+                transition:"all .15s"
+              }}>
+              {icon} {label}
             </button>
           ))}
         </div>
@@ -232,6 +236,7 @@ export default function Logs() {
           disabled={loading}
           style={{
             ...styles.btnSm,
+            ...styles.btnGray,
             opacity: loading ? 0.5 : 1,
             display: "flex",
             alignItems: "center",
@@ -247,81 +252,97 @@ export default function Logs() {
       {/* NOUVELLE Barre d'actions groupées */}
       {selectedIds.size > 0 && (
         <div style={{
-          ...styles.card,
+          // ...styles.card,
           padding: "14px 24px",
-          background: `linear-gradient(135deg, ${T.primaryLight} 0%, ${T.primaryLight}dd 100%)`,
-          border: `1px solid ${T.primary}`,
+          background: 'linear-gradient(135deg, rgb(30, 41, 59) 0%, rgb(15, 23, 42) 100%)',
+          border: `1px solid #ffffff14`,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: 16,
-          animation: "slideDown 0.3s ease-out"
+          gap: 10,
+          animation: "slideDown 0.3s ease-out",
+          color :'#ffffffb3',
+          boxShadow: "rgba(0, 0, 0, 0.25) 0px 4px 20px",
+          borderRadius: 12,
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <CheckSquare size={22} color={T.primary} strokeWidth={2.5} />
-            <span style={{
-              fontSize: 15,
-              fontWeight: 700,
-              color: T.primary
-            }}>
-              {selectedIds.size} email{selectedIds.size > 1 ? 's' : ''} sélectionné{selectedIds.size > 1 ? 's' : ''}
-            </span>
-          </div>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            
+            <div style={{ display:"flex", alignItems:"center", gap:8, marginRight:4 }}>
+              <div style={{ width:28, height:28, borderRadius:8, background:"rgba(255,255,255,.15)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color:"#fff" }}>
+                {selectedIds.size}
+              </div>
+              <span style={{ color:"rgba(255,255,255,.7)", fontSize:13 }}>
+                sélectionné{selectedIds.size > 1 ? "s" : ""} / {selectedIds.size}
+              </span>
+            </div>
 
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {/* <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <CheckSquare size={17} color="#ffffffb3" strokeWidth={2.5} />
+              <span style={{
+                fontSize: 13,
+                fontWeight: 500,
+                color: "#ffffffb3"
+              }}>
+                {selectedIds.size} email{selectedIds.size > 1 ? 's' : ''} sélectionné{selectedIds.size > 1 ? 's' : ''}
+              </span>
+            </div> */}
+
+            <div style={{ width:1, height:24, background:"rgba(255,255,255,.12)", margin:"0 4px" }}/>
+
             <button
               onClick={resendSelected}
               style={{
-                padding: "9px 18px",
-                background: T.primary,
-                color: "#fff",
-                border: "none",
+                padding: "6px 12px",
+                background: "rgba(255, 255, 255, 0.08)",
                 borderRadius: 8,
                 fontSize: 13,
-                fontWeight: 600,
+                fontWeight: 500,
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
-                gap: 8,
-                transition: "all 0.2s",
-                boxShadow: `0 4px 12px ${T.primary}30`
+                gap: 6,
+                transition: "all 0.15s",
+                // boxShadow: `0 4px 12px ${T.primary}30`,
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                color: 'rgba(255, 255, 255, 0.85)',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "translateY(-2px)";
-                e.currentTarget.style.boxShadow = `0 6px 16px ${T.primary}40`;
+                // e.currentTarget.style.transform = "translateY(-2px)";
+                // e.currentTarget.style.boxShadow = `0 6px 16px ${T.primary}40`;
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow = `0 4px 12px ${T.primary}30`;
+                // e.currentTarget.style.transform = "translateY(0)";
+                // e.currentTarget.style.boxShadow = `0 4px 12px ${T.primary}30`;
               }}
             >
-              <Send size={15} />
+              <Send size={14} />
               Renvoyer
             </button>
 
             <button
               onClick={exportSelected}
               style={{
-                padding: "9px 18px",
-                background: "#fff",
-                color: T.text,
-                border: `2px solid ${T.border}`,
+                padding: "6px 12px",
+                background: "rgba(255, 255, 255, 0.08)",
                 borderRadius: 8,
                 fontSize: 13,
-                fontWeight: 600,
+                fontWeight: 500,
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
-                gap: 8,
-                transition: "all 0.2s"
+                gap: 6,
+                transition: "all 0.15s",
+                // boxShadow: `0 4px 12px ${T.primary}30`,
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                color: 'rgba(255, 255, 255, 0.85)',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = T.bg;
-                e.currentTarget.style.borderColor = T.text;
+                // e.currentTarget.style.background = T.bg;
+                // e.currentTarget.style.borderColor = T.text;
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = "#fff";
-                e.currentTarget.style.borderColor = T.border;
+                // e.currentTarget.style.background = "#fff";
+                // e.currentTarget.style.borderColor = T.border;
               }}
             >
               <Download size={15} />
@@ -331,84 +352,88 @@ export default function Logs() {
             <button
               onClick={archiveSelected}
               style={{
-                padding: "9px 18px",
-                background: "#fff",
-                color: T.text,
-                border: `2px solid ${T.border}`,
+                padding: "6px 12px",
+                background: "rgba(255, 255, 255, 0.08)",
                 borderRadius: 8,
                 fontSize: 13,
-                fontWeight: 600,
+                fontWeight: 500,
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
-                gap: 8,
-                transition: "all 0.2s"
+                gap: 6,
+                transition: "all 0.15s",
+                // boxShadow: `0 4px 12px ${T.primary}30`,
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                color: 'rgba(255, 255, 255, 0.85)',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = T.bg;
-                e.currentTarget.style.borderColor = T.text;
+                // e.currentTarget.style.background = T.bg;
+                // e.currentTarget.style.borderColor = T.text;
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = "#fff";
-                e.currentTarget.style.borderColor = T.border;
+                // e.currentTarget.style.background = "#fff";
+                // e.currentTarget.style.borderColor = T.border;
               }}
             >
               <Archive size={15} />
               Archiver
             </button>
 
+            <div style={{ width:1, height:24, background:"rgba(255,255,255,.12)", margin:"0 4px" }}/>
+
             <button
               onClick={deleteSelected}
               style={{
-                padding: "9px 18px",
-                background: "#fff",
-                color: T.danger,
-                border: `2px solid ${T.danger}`,
+                padding: "6px 12px",
+                background: "rgba(255, 255, 255, 0.08)",
                 borderRadius: 8,
                 fontSize: 13,
-                fontWeight: 600,
+                fontWeight: 500,
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
-                gap: 8,
-                transition: "all 0.2s"
+                gap: 6,
+                transition: "all 0.15s",
+                // boxShadow: `0 4px 12px ${T.primary}30`,
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                color:"#fca5a5", 
+                borderColor:"rgba(252,165,165,.25)"
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = T.danger;
-                e.currentTarget.style.color = "#fff";
+                // e.currentTarget.style.background = T.danger;
+                // e.currentTarget.style.color = "#fff";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = "#fff";
-                e.currentTarget.style.color = T.danger;
+                // e.currentTarget.style.background = "#fff";
+                // e.currentTarget.style.color = T.danger;
               }}
             >
-              <Trash2 size={15} />
+              <Trash2 size={14} />
               Supprimer
             </button>
+            
+          </div>
 
+          <div >
+            
             <button
               onClick={() => setSelectedIds(new Set())}
               style={{
-                padding: "9px 14px",
-                background: "transparent",
-                color: T.textSub,
-                border: "none",
-                borderRadius: 8,
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: "pointer",
-                transition: "all 0.2s"
+                marginLeft:"auto",
+                background:"none", border:"none", cursor:"pointer",
+                color:"rgba(255,255,255,.4)", fontSize:13,
+                display:"flex", alignItems:"center", gap:4
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.color = T.text;
-                e.currentTarget.style.background = "#fff";
+                // e.currentTarget.style.color = T.text;
+                // e.currentTarget.style.background = "#fff";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color = T.textSub;
-                e.currentTarget.style.background = "transparent";
+                // e.currentTarget.style.color = T.textSub;
+                // e.currentTarget.style.background = "transparent";
               }}
             >
-              Annuler
+              <X size={13}/> Annuler
             </button>
           </div>
         </div>
@@ -422,7 +447,7 @@ export default function Logs() {
           gridTemplateColumns: "50px 100px 1fr 200px 140px 90px",
           padding: "14px 8px",
           background: T.bg,
-          borderBottom: `2px solid ${T.border}`,
+          borderBottom: `1px solid ${T.border}`,
           position: "sticky",
           top: 0,
           zIndex: 10
@@ -440,7 +465,7 @@ export default function Logs() {
           >
             {allSelected ? (
               <CheckSquare
-                size={20}
+                size={17}
                 color={T.primary}
                 strokeWidth={2.5}
               />
@@ -449,7 +474,7 @@ export default function Logs() {
                 width: 20,
                 height: 20,
                 borderRadius: 4,
-                border: `2px solid ${T.primary}`,
+                border: `1px solid ${T.primary}`,
                 background: T.primaryLight,
                 display: "flex",
                 alignItems: "center",
@@ -463,7 +488,7 @@ export default function Logs() {
               </div>
             ) : (
               <Square
-                size={20}
+                size={17}
                 color={T.textSub}
                 strokeWidth={2}
               />
@@ -561,13 +586,13 @@ export default function Logs() {
               >
                 {isSelected ? (
                   <CheckSquare
-                    size={20}
+                    size={17}
                     color={T.primary}
                     strokeWidth={2.5}
                   />
                 ) : (
                   <Square
-                    size={20}
+                    size={17}
                     color={T.textSub}
                     strokeWidth={2}
                   />
@@ -576,7 +601,7 @@ export default function Logs() {
 
               {/* Statut */}
               <div>
-                <Badge status={l.status} />
+                <CustomBadge status={l.status} />
               </div>
 
               {/* Sujet */}
@@ -592,11 +617,11 @@ export default function Logs() {
                 }}>
                   <span style={{
                     color: T.text,
-                    fontSize: 14,
-                    fontWeight: 600,
+                    fontSize: 13,
+                    fontWeight: 500,
                     overflow: "hidden",
                     textOverflow: "ellipsis",
-                    whiteSpace: "nowrap"
+                    whiteSpace: "nowrap",
                   }}>
                     {l.subject}
                   </span>
@@ -684,13 +709,13 @@ export default function Logs() {
                   }}
                   style={{
                     background: "transparent",
-                    border: `2px solid ${T.border}`,
+                    border: `1px solid ${T.border}`,
                     borderRadius: 8,
                     padding: "7px 12px",
                     cursor: "pointer",
                     color: T.primary,
                     fontSize: 13,
-                    fontWeight: 600,
+                    fontWeight: 500,
                     display: "flex",
                     alignItems: "center",
                     gap: 6,
@@ -723,6 +748,7 @@ export default function Logs() {
             padding: "60px 24px",
             textAlign: "center"
           }}>
+
             <div style={{
               width: 64,
               height: 64,
@@ -732,9 +758,8 @@ export default function Logs() {
               alignItems: "center",
               justifyContent: "center",
               margin: "0 auto 16px",
-              fontSize: 32
             }}>
-              📭
+              <MailX size={32} color="#fca5a5" strokeWidth={1.5} />
             </div>
             <h3 style={{
               color: T.text,
@@ -744,6 +769,7 @@ export default function Logs() {
             }}>
               Aucun email trouvé
             </h3>
+
             <p style={{
               color: T.textSub,
               fontSize: 14,
@@ -881,7 +907,7 @@ export default function Logs() {
               {/* Statut */}
               <div style={{ marginBottom: 20 }}>
                 <p style={{ fontSize: 11, color: T.textSub, fontWeight: 600, margin: "0 0 6px" }}>STATUT</p>
-                <Badge status={selectedLog.status} />
+                <CustomBadge status={selectedLog.status} />
                 {selectedLog.error && (
                   <div style={{ marginTop: 8, padding: "10px 12px", background: T.dangerLight, borderRadius: 8 }}>
                     <p style={{ margin: 0, fontSize: 14, color: T.danger, fontWeight: 600 }}>Erreur :</p>
@@ -893,7 +919,7 @@ export default function Logs() {
               {/* Destinataires */}
               <div style={{ marginBottom: 20 }}>
                 <p style={{ fontSize: 11, color: T.textSub, fontWeight: 600, margin: "0 0 6px" }}>DESTINATAIRES</p>
-                <p style={{ margin: 0, fontSize: 15, color: T.text }}>{selectedLog.to.join(", ")}</p>
+                <p style={{ margin: 0, fontSize: 14, color: T.text }}>{selectedLog.to.join(", ")}</p>
                 {selectedLog.cc?.length > 0 && <p style={{ margin: "4px 0 0", fontSize: 14, color: T.textSub }}>CC : {selectedLog.cc.join(", ")}</p>}
                 {selectedLog.bcc?.length > 0 && <p style={{ margin: "4px 0 0", fontSize: 14, color: T.textSub }}>BCC : {selectedLog.bcc.join(", ")}</p>}
               </div>
@@ -901,7 +927,7 @@ export default function Logs() {
               {/* Sujet */}
               <div style={{ marginBottom: 20 }}>
                 <p style={{ fontSize: 11, color: T.textSub, fontWeight: 600, margin: "0 0 6px" }}>SUJET</p>
-                <p style={{ margin: 0, fontSize: 15, color: T.text, fontWeight: 500 }}>{selectedLog.subject}</p>
+                <p style={{ margin: 0, fontSize: 14, color: T.text, fontWeight: 500 }}>{selectedLog.subject}</p>
               </div>
 
               {/* Dates */}
@@ -952,3 +978,10 @@ export default function Logs() {
     </div>
   );
 }
+
+const ghostBtn = {
+  display:"flex", alignItems:"center", gap:6,
+  background:"rgba(255,255,255,.08)", border:"1px solid rgba(255,255,255,.12)",
+  color:"rgba(255,255,255,.85)", borderRadius:8, padding:"6px 12px",
+  cursor:"pointer", fontSize:13, fontWeight:500, transition:"all .15s",
+};

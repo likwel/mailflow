@@ -15,6 +15,7 @@ export default function BulkSend() {
   const [activeTab, setActiveTab] = useState("manual"); // manual, bulk, template
   const [recipients, setRecipients] = useState("");
   const [subject, setSubject] = useState("");
+  const [varValues, setVarValues] = useState({});
   const [html, setHtml] = useState("");
   const [sent, setSent] = useState(null);
   const [error, setError] = useState("");
@@ -107,7 +108,7 @@ export default function BulkSend() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
-  async function submit() {
+  async function submit(varValues) {
     if (!count || !subject || !html) {
       setError("Remplissez tous les champs.");
       return;
@@ -132,11 +133,13 @@ export default function BulkSend() {
         to: emails,
         subject,
         html,
+        varValues
       });
       setSent({ count: res.data.sent, time: new Date().toLocaleTimeString() });
       setRecipients("");
       setSubject("");
       setHtml("");
+      setVarValues({})
       removeFile();
       fetchQuota();
     } catch (err) {
@@ -263,12 +266,9 @@ export default function BulkSend() {
 
       {/* Tabs Navigation */}
       <div style={{ ...styles.card, padding: 0, overflow: "hidden" }}>
-        <div style={{ 
-          display: "flex", 
-          borderBottom: `2px solid ${T.border}`,
-          background: T.bg,
-        }}>
-          {tabs.map((tab) => {
+        <div style={{ display:"flex", background:"#fff" , padding:5, borderBottom:'2px solid #f1f5f9' }}>
+          <div style={{ display:"flex", background:"#f1f5f9", padding :3 , borderRadius : 6}}>
+          {tabs.map(tab => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
@@ -276,37 +276,22 @@ export default function BulkSend() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 style={{
-                  flex: 1,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
-                  padding: "16px 20px",
-                  background: isActive ? T.card : "transparent",
-                  border: "none",
-                  borderBottom: isActive ? `3px solid ${T.primary}` : "3px solid transparent",
-                  color: isActive ? T.primary : '#1e293b',
-                  fontWeight: 700,
-                  fontSize: 15,
-                  cursor: "pointer",
-                  transition: "all 0.2s",
-                }}
-                onMouseEnter={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.background = T.primaryLight;
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.background = "transparent";
-                  }
-                }}
-              >
-                <Icon size={18} />
+                  display:"flex", alignItems:"center", justifyContent:"center", gap:6,
+                  padding:"10px 14px", borderRadius:6, border:"none", cursor:"pointer",
+                  fontSize:".9rem", fontWeight:700,
+                  background: isActive ? "#fff" : "transparent",
+                  color: isActive ? T.primary : T.textSub,
+                  boxShadow: isActive ? "0 1px 4px rgba(0,0,0,.08)" : "none",
+                  transition:"all .15s",
+                  borderBottom : 'none'
+                }}>
+                <Icon size={15}/>
                 {tab.label}
               </button>
             );
           })}
+          </div>
+          <></>
         </div>
 
         {/* Tab Content */}
@@ -321,7 +306,8 @@ export default function BulkSend() {
             html={html} setHtml={setHtml}
             count={count} maxAllowed={maxAllowed}
             exceedsLimit={exceedsLimit} loading={loading}
-            onSubmit={submit}
+            // onSubmit={submit}
+            onSubmit={(varValues) => submit(varValues)}
           />
         )}
 
@@ -334,7 +320,8 @@ export default function BulkSend() {
                 setRecipients(to.join("\n"));
                 setSubject(subject);
                 setHtml(html);
-                submit(); // ta fonction d'envoi existante
+                setVarValues(varValues)
+                submit(varValues); // ta fonction d'envoi existante
               }}
             />
           )}
@@ -348,7 +335,8 @@ export default function BulkSend() {
                 setRecipients(to.join("\n"));
                 setSubject(subject);
                 setHtml(html);
-                submit();
+                setVarValues(varValues)
+                submit(varValues);
               }}
             />
           )}
