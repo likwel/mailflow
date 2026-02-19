@@ -171,8 +171,9 @@ export default function Logs() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       <div>
-        <p style={{ color: T.textSub, fontSize: 20, margin: "4px 0 0" }}>
-          Historique complet de vos envois · <span style={{ color: '#6366f1', fontWeight: 600 }}>{total}</span> email{total > 1 ? "s" : ""}
+        <h1 style={{ color: T.text, fontSize: 28, fontWeight: 700, margin: 0 }}>Historique et monitoring . <span style={{ color: '#6366f1', fontWeight: 600 }}>{total}</span> email{total > 1 ? "s" : ""}</h1>
+        <p style={{ color: T.textSub, fontSize: 14, margin: "4px 0 0" }}>
+          Gérez le suivi et historique des emails
         </p>
       </div>
 

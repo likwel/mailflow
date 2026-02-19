@@ -82,10 +82,12 @@ export default function ApiKeys() {
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
-          <p style={{ color: T.textSub, fontSize: 20, margin: "4px 0 0" }}>
+          <h1 style={{ color: T.text, fontSize: 28, fontWeight: 700, margin: 0 }}>Clés API</h1>
+          <p style={{ color: T.textSub, fontSize: 14, margin: "4px 0 0" }}>
             Gérez vos clés d'authentification API
           </p>
         </div>
+
         <button 
           onClick={() => setShowForm(!showForm)} 
           style={{ 

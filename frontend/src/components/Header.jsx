@@ -3,8 +3,8 @@
 // =====================================================
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
-import { T } from "../theme";
-import { Bell, LogOut, Check } from "lucide-react";
+import { T, styles } from "../theme";
+import { Bell, LogOut, Check, Search } from "lucide-react";
 
 // Notifications mock — à remplacer par une vraie API
 const MOCK_NOTIFICATIONS = [
@@ -22,14 +22,14 @@ const ICONS = {
 };
 
 const PAGE_TITLES = {
-  overview: "Aperçu",
-  logs: "Historique des emails",
-  apikeys: "Clés API",
-  templates: "Modèles",
-  bulk: "Envoi des emails",
-  settings: "Paramètres",
-  contacts: "Contacts",
-  automations: "Automatisations",
+  overview: "dashboard",
+  logs: "historique des emails",
+  apikeys: "clés API",
+  templates: "templates",
+  bulk: "envoi des emails",
+  settings: "paramètres",
+  contacts: "contacts",
+  automations: "automatisations",
 };
 
 export default function Header({ activePage }) {
@@ -37,6 +37,7 @@ export default function Header({ activePage }) {
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
   const [isMobile, setIsMobile] = useState(false);
+  const [search, setSearch]     = useState("");
   const notifRef = useRef(null);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -82,7 +83,13 @@ export default function Header({ activePage }) {
     >
       {/* Titre de la page */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <h1
+        <div style={{ flex:1, minWidth:220, position:"relative", marginRight : 20 }}>
+          <Search size={15} color={T.textSub} style={{ position:"absolute", left:11, top:"50%", transform:"translateY(-50%)" }}/>
+          <input placeholder={`Rechercher dans ${PAGE_TITLES[activePage] || "Dashboard"} ...`} value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{ ...styles.input, paddingLeft:36 }}/>
+        </div>
+        {/* <h1
           style={{
             color: T.text,
             fontSize: isMobile ? 18 : 22,
@@ -94,7 +101,7 @@ export default function Header({ activePage }) {
           }}
         >
           {PAGE_TITLES[activePage] || "Dashboard"}
-        </h1>
+        </h1> */}
       </div>
 
       {/* Actions droite */}

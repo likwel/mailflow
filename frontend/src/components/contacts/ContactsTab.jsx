@@ -18,22 +18,30 @@ function Stat({ label, value, color }) {
 }
 
 // ─── Status badge ─────────────────────────────────────
-const STATUS_COLOR = {
-  ACTIVE:       { bg: "#d1fae5", color: "#065f46" },
-  UNSUBSCRIBED: { bg: "#fef3c7", color: "#92400e" },
-  BOUNCED:      { bg: "#fee2e2", color: "#991b1b" },
-  COMPLAINED:   { bg: "#ede9fe", color: "#5b21b6" },
-  BLOCKED:      { bg: "#f1f5f9", color: "#475569" },
+const STATUS_CONFIG = {
+  ACTIVE:       { bg:"#d1fae5", color:"#065f46", dot:"#10b981", label:"Actif" },
+  UNSUBSCRIBED: { bg:"#fef3c7", color:"#92400e", dot:"#f59e0b", label:"Désabonné" },
+  BOUNCED:      { bg:"#fee2e2", color:"#991b1b", dot:"#ef4444", label:"Rebond" },
+  COMPLAINED:   { bg:"#ede9fe", color:"#5b21b6", dot:"#8b5cf6", label:"Plainte" },
+  BLOCKED:      { bg:"#f1f5f9", color:"#475569", dot:"#94a3b8", label:"Bloqué" },
 };
-const STATUS_LABEL = {
-  ACTIVE: "Actif", UNSUBSCRIBED: "Désabonné",
-  BOUNCED: "Rebond", COMPLAINED: "Plainte", BLOCKED: "Bloqué",
-};
+
 function StatusBadge({ status }) {
-  const s = STATUS_COLOR[status] || STATUS_COLOR.BLOCKED;
+  const s = STATUS_CONFIG[status] || STATUS_CONFIG.BLOCKED;
   return (
-    <span style={{ ...s, borderRadius: 99, fontSize: 11, fontWeight: 600, padding: "2px 10px" }}>
-      {STATUS_LABEL[status] || status}
+    <span style={{
+      display: "inline-flex", alignItems: "center", gap: 5,
+      background: s.bg, color: s.color,
+      borderRadius: 99, fontSize: 11, fontWeight: 600,
+      padding: "3px 10px 3px 7px",
+      border: `1px solid ${s.color}25`,
+      whiteSpace: "nowrap",
+    }}>
+      <span style={{
+        width: 6, height: 6, borderRadius: "50%",
+        background: s.dot, flexShrink: 0,
+      }}/>
+      {s.label}
     </span>
   );
 }
@@ -248,7 +256,7 @@ export default function ContactsTab() {
                       </button>
                     </th>
                     {["Email","Nom","Entreprise","Tags","Statut","Listes",""].map(h => (
-                      <th key={h} style={{ padding:"12px 16px", textAlign:"left", color: T.textSub, fontWeight:600, fontSize:12, whiteSpace:"nowrap" }}>{h}</th>
+                      <th key={h} style={{ padding:"12px 16px", textAlign:"left", color: T.textSub, fontWeight:700, fontSize:12, whiteSpace:"nowrap" }}>{h.toUpperCase()}</th>
                     ))}
                   </tr>
                 </thead>

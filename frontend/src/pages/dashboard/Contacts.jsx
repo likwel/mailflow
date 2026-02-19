@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { T, styles } from "../../theme";
 import client from "../../api/client";
-import { Users, List } from "lucide-react";
+import { Users, List, ListChecks } from "lucide-react";
 import ContactsTab  from "../../components/contacts/ContactsTab";
 import ListsTab     from "../../components/contacts/ListsTab";
 
@@ -10,7 +10,10 @@ function Tab({ label, icon: Icon, active, onClick }) {
   return (
     <button onClick={onClick} style={{
       display: "flex", alignItems: "center", gap: 8,
+      fontWeight : 700,
       padding: "10px 20px", background: "none", border: "none", cursor: "pointer",
+      paddingLeft : 0,
+      paddingRight :0,
       borderBottom: active ? `2px solid ${T.primary}` : "2px solid transparent",
       color: active ? T.primary : T.textSub,
       fontWeight: active ? 600 : 400, fontSize: 15, transition: "all .15s"
@@ -30,9 +33,9 @@ export default function Contacts() {
           Gérez vos contacts et vos listes de diffusion
         </p>
       </div>
-      <div style={{ borderBottom: `1px solid ${T.border}`, display: "flex" }}>
-        <Tab label="Contacts" icon={Users} active={activeTab === "contacts"} onClick={() => setActiveTab("contacts")} />
-        <Tab label="Listes"   icon={List}  active={activeTab === "lists"}    onClick={() => setActiveTab("lists")} />
+      <div style={{ borderBottom: `1px solid ${T.border}`, display: "flex" , gap : 25}}>
+        <Tab label="Contacts" icon={Users} active={activeTab === "contacts"} onClick={() => setActiveTab("contacts")}/>
+        <Tab label="Listes"   icon={ListChecks}  active={activeTab === "lists"}    onClick={() => setActiveTab("lists")} />
       </div>
       {activeTab === "contacts" ? <ContactsTab /> : <ListsTab />}
     </div>

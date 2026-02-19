@@ -80,8 +80,9 @@ export default function Templates() {
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
-          <p style={{ color: T.textSub, fontSize: 20, margin: "4px 0 0" }}>
-            Créez des templates avec des variables {"{{variable}}"}
+          <h1 style={{ color: T.text, fontSize: 28, fontWeight: 700, margin: 0 }}>Modèles et templates</h1>
+          <p style={{ color: T.textSub, fontSize: 14, margin: "4px 0 0" }}>
+            Gérez et créér vos templates avec des variables un ou plusieurs variables
           </p>
         </div>
         <button

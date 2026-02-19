@@ -123,8 +123,9 @@ export default function Settings() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <div>
-        <p style={{ color: T.textSub, fontSize: 20, margin: "4px 0 0" }}>
-          Configuration de votre compte
+        <h1 style={{ color: T.text, fontSize: 28, fontWeight: 700, margin: 0 }}>Parmètres</h1>
+        <p style={{ color: T.textSub, fontSize: 14, margin: "4px 0 0" }}>
+          Gérez et configurer votre compte
         </p>
       </div>
 

@@ -157,9 +157,11 @@ export default function BulkSend() {
       
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
+
         <div>
-          <p style={{ color: T.textSub, fontSize: 20, margin: "4px 0 0" }}>
-            Envoyer des emails à plusieurs destinataires
+          <h1 style={{ color: T.text, fontSize: 28, fontWeight: 700, margin: 0 }}>Envoyer des emails</h1>
+          <p style={{ color: T.textSub, fontSize: 14, margin: "4px 0 0" }}>
+            Gérez vos envoyer des emails à un ou plusieurs destinataires
           </p>
         </div>
         

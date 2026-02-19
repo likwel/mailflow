@@ -34,17 +34,46 @@ function MenuItem({ icon, label, onClick, danger }) {
   );
 }
 
-const STATUS_COLOR = {
-  ACTIVE:       { bg:"#d1fae5", color:"#065f46" },
-  UNSUBSCRIBED: { bg:"#fef3c7", color:"#92400e" },
-  BOUNCED:      { bg:"#fee2e2", color:"#991b1b" },
-  COMPLAINED:   { bg:"#ede9fe", color:"#5b21b6" },
-  BLOCKED:      { bg:"#f1f5f9", color:"#475569" },
+const STATUS_CONFIG = {
+  ACTIVE:       { bg:"#d1fae5", color:"#065f46", dot:"#10b981", label:"Actif" },
+  UNSUBSCRIBED: { bg:"#fef3c7", color:"#92400e", dot:"#f59e0b", label:"Désabonné" },
+  BOUNCED:      { bg:"#fee2e2", color:"#991b1b", dot:"#ef4444", label:"Rebond" },
+  COMPLAINED:   { bg:"#ede9fe", color:"#5b21b6", dot:"#8b5cf6", label:"Plainte" },
+  BLOCKED:      { bg:"#f1f5f9", color:"#475569", dot:"#94a3b8", label:"Bloqué" },
 };
-const STATUS_LABEL = { ACTIVE:"Actif", UNSUBSCRIBED:"Désabonné", BOUNCED:"Rebond", COMPLAINED:"Plainte", BLOCKED:"Bloqué" };
+
 function StatusBadge({ status }) {
-  const s = STATUS_COLOR[status] || STATUS_COLOR.BLOCKED;
-  return <span style={{ ...s, borderRadius:99, fontSize:11, fontWeight:600, padding:"2px 9px" }}>{STATUS_LABEL[status]||status}</span>;
+  const s = STATUS_CONFIG[status] || STATUS_CONFIG.BLOCKED;
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", gap: 5,
+      background: s.bg, color: s.color,
+      borderRadius: 99, fontSize: 11, fontWeight: 600,
+      padding: "3px 10px 3px 7px",
+      border: `1px solid ${s.color}25`,
+      whiteSpace: "nowrap",
+    }}>
+      <span style={{
+        width: 6, height: 6, borderRadius: "50%",
+        background: s.dot, flexShrink: 0,
+      }}/>
+      {s.label}
+    </span>
+  );
+}
+
+// ─── Checkbox ─────────────────────────────────────────
+function Checkbox({ checked, indeterminate }) {
+  if (indeterminate) return (
+    <div style={{ width:16, height:16, borderRadius:4, background:T.primary, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+      <svg width="10" height="2" viewBox="0 0 10 2"><rect x="1" y="0.5" width="8" height="1.5" rx="1" fill="white"/></svg>
+    </div>
+  );
+  return checked
+    ? <div style={{ width:16, height:16, borderRadius:4, background:T.primary, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+        <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+      </div>
+    : <div style={{ width:16, height:16, borderRadius:4, border:"2px solid #cbd5e1", flexShrink:0, background:"#fff" }}/>;
 }
 
 // ─── List Modal (create / edit) ───────────────────────
@@ -95,7 +124,6 @@ function AddContactsModal({ listId, existingIds, onClose, onSave }) {
     setLoading(true);
     try {
       const res = await client.get("/contacts", { params: { search, limit: 100 } });
-      // Exclure ceux déjà dans la liste
       const all = res.data.contacts || [];
       setContacts(all.filter(c => !existingIds.includes(c.id)));
     } catch (e) { console.error(e); }
@@ -122,21 +150,15 @@ function AddContactsModal({ listId, existingIds, onClose, onSave }) {
   return (
     <Overlay onClose={onClose} wide>
       <h2 style={{ margin:"0 0 16px", color:T.text, fontSize:20, fontWeight:700 }}>Ajouter des contacts</h2>
-
-      {/* Search */}
       <div style={{ position:"relative", marginBottom:12 }}>
         <Search size={15} color={T.textSub} style={{ position:"absolute", left:11, top:"50%", transform:"translateY(-50%)" }}/>
         <input placeholder="Rechercher par email, nom..." value={search}
           onChange={e => setSearch(e.target.value)}
           style={{ ...styles.input, paddingLeft:36 }}/>
       </div>
-
-      {/* Select all bar */}
       {contacts.length > 0 && (
         <div style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 12px", background:"#f8fafc", borderRadius:8, marginBottom:8, cursor:"pointer" }} onClick={toggleAll}>
-          <span style={{ color: allSel?T.primary:T.textSub }}>
-            {allSel ? <CheckSquare size={16} color={T.primary}/> : <Square size={16}/>}
-          </span>
+          <Checkbox checked={allSel} indeterminate={selected.length > 0 && !allSel}/>
           <span style={{ fontSize:13, color:T.textSub }}>
             {allSel ? "Tout désélectionner" : "Tout sélectionner"} ({contacts.length})
           </span>
@@ -145,8 +167,6 @@ function AddContactsModal({ listId, existingIds, onClose, onSave }) {
           )}
         </div>
       )}
-
-      {/* List */}
       <div style={{ border:`1px solid ${T.border}`, borderRadius:8, overflow:"hidden", maxHeight:340, overflowY:"auto", marginBottom:14 }}>
         {loading ? (
           <div style={{ padding:24, textAlign:"center", color:T.textSub }}>Chargement...</div>
@@ -160,9 +180,7 @@ function AddContactsModal({ listId, existingIds, onClose, onSave }) {
               borderTop: i>0?`1px solid ${T.border}`:"none",
               background: selected.includes(c.id)?"#eff6ff":"#fff",
               transition:"background .1s" }}>
-            <span style={{ flexShrink:0 }}>
-              {selected.includes(c.id) ? <CheckSquare size={16} color={T.primary}/> : <Square size={16} color={T.textSub}/>}
-            </span>
+            <Checkbox checked={selected.includes(c.id)}/>
             <div style={{ flex:1, minWidth:0 }}>
               <div style={{ fontWeight:500, color:T.text, fontSize:14, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{c.email}</div>
               {(c.firstName||c.lastName) && (
@@ -174,9 +192,7 @@ function AddContactsModal({ listId, existingIds, onClose, onSave }) {
           </div>
         ))}
       </div>
-
       {error && <p style={{ color:T.danger, fontSize:13, margin:"0 0 12px" }}>{error}</p>}
-
       <div style={{ display:"flex", gap:10, justifyContent:"flex-end" }}>
         <button onClick={onClose} style={{ ...styles.btn, background:"#fff", color:T.text, border:`1px solid ${T.border}` }}>Annuler</button>
         <button onClick={handleAdd} disabled={!selected.length || saving} style={{ ...styles.btn, opacity: !selected.length?0.5:1 }}>
@@ -189,11 +205,11 @@ function AddContactsModal({ listId, existingIds, onClose, onSave }) {
 
 // ─── Import CSV dans une liste ────────────────────────
 function ImportToListModal({ listId, listName, onClose, onSave }) {
-  const [step, setStep]     = useState("upload"); // upload | preview | result
-  const [rows, setRows]     = useState([]);
-  const [result, setResult] = useState(null);
+  const [step, setStep]       = useState("upload");
+  const [rows, setRows]       = useState([]);
+  const [result, setResult]   = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError]   = useState("");
+  const [error, setError]     = useState("");
 
   function parseCsv(text) {
     const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
@@ -242,7 +258,6 @@ function ImportToListModal({ listId, listName, onClose, onSave }) {
       <h2 style={{ margin:"0 0 4px", color:T.text, fontSize:20, fontWeight:700 }}>Importer dans « {listName} »</h2>
       <p style={{ color:T.textSub, fontSize:13, margin:"0 0 20px" }}>Les contacts seront créés et ajoutés à cette liste</p>
 
-      {/* Step upload */}
       {step === "upload" && (
         <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
           <label style={{ border:`2px dashed ${T.border}`, borderRadius:12, padding:36, textAlign:"center", cursor:"pointer", display:"block" }}
@@ -264,7 +279,6 @@ function ImportToListModal({ listId, listName, onClose, onSave }) {
         </div>
       )}
 
-      {/* Step preview */}
       {step === "preview" && (
         <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
           <div style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 14px", background:"#eff6ff", borderRadius:8 }}>
@@ -304,7 +318,6 @@ function ImportToListModal({ listId, listName, onClose, onSave }) {
         </div>
       )}
 
-      {/* Step result */}
       {step === "result" && result && (
         <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:16, textAlign:"center", padding:"16px 0" }}>
           <div style={{ width:60, height:60, borderRadius:"50%", background:"#d1fae5", display:"flex", alignItems:"center", justifyContent:"center" }}>
@@ -333,12 +346,14 @@ function ImportToListModal({ listId, listName, onClose, onSave }) {
 
 // ─── List Detail ──────────────────────────────────────
 function ListDetail({ listId, onBack }) {
-  const [list, setList]           = useState(null);
-  const [loading, setLoading]     = useState(true);
-  const [showAdd, setShowAdd]     = useState(false);
+  const [list, setList]             = useState(null);
+  const [loading, setLoading]       = useState(true);
+  const [showAdd, setShowAdd]       = useState(false);
   const [showImport, setShowImport] = useState(false);
-  const [removing, setRemoving]   = useState(null);
-  const [search, setSearch]       = useState("");
+  const [removing, setRemoving]     = useState(null);
+  const [search, setSearch]         = useState("");
+  const [selected, setSelected]     = useState([]);
+  const [bulkRemoving, setBulkRemoving] = useState(false);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -356,21 +371,51 @@ function ListDetail({ listId, onBack }) {
     setRemoving(contactId);
     try {
       await client.delete(`/contact-lists/${listId}/contacts`, { data: { contactIds: [contactId] } });
+      setSelected(p => p.filter(id => id !== contactId));
       await reload();
-    } catch (e) { alert("Erreur lors du retrait"); }
+    } catch { alert("Erreur lors du retrait"); }
     finally { setRemoving(null); }
   }
 
-  if (loading || !list) return <div style={{ padding:60, textAlign:"center", color:T.textSub }}>Chargement...</div>;
+  async function handleBulkRemove() {
+    if (!confirm(`Retirer ${selected.length} contact(s) de la liste ?`)) return;
+    setBulkRemoving(true);
+    try {
+      await client.delete(`/contact-lists/${listId}/contacts`, { data: { contactIds: selected } });
+      setSelected([]);
+      await reload();
+    } catch { alert("Erreur lors du retrait"); }
+    finally { setBulkRemoving(false); }
+  }
 
-  const members = list.contacts || [];
+  function toggleSelect(id) {
+    setSelected(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
+  }
+
+  if (loading || !list) return (
+    <div style={{ padding:60, textAlign:"center", color:T.textSub }}>Chargement...</div>
+  );
+
+  const members    = list.contacts || [];
   const existingIds = members.map(m => m.contactId || m.contact?.id).filter(Boolean);
 
   const filtered = members.filter(m => {
     const c = m.contact || {};
     const q = search.toLowerCase();
-    return !q || (c.email||"").includes(q) || (c.firstName||"").toLowerCase().includes(q) || (c.lastName||"").toLowerCase().includes(q);
+    return !q
+      || (c.email||"").includes(q)
+      || (c.firstName||"").toLowerCase().includes(q)
+      || (c.lastName||"").toLowerCase().includes(q);
   });
+
+  // ✅ Toujours après `filtered`
+  const allIds     = filtered.map(m => m.contact?.id).filter(Boolean);
+  const someSelected = selected.length > 0 && selected.length < allIds.length;
+  const allSelected  = allIds.length > 0 && allIds.every(id => selected.includes(id));
+
+  function toggleAll() {
+    setSelected(allSelected ? [] : allIds);
+  }
 
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
@@ -407,7 +452,7 @@ function ListDetail({ listId, onBack }) {
         </span>
       </div>
 
-      {/* Search dans la liste */}
+      {/* Search */}
       {members.length > 0 && (
         <div style={{ position:"relative" }}>
           <Search size={15} color={T.textSub} style={{ position:"absolute", left:11, top:"50%", transform:"translateY(-50%)" }}/>
@@ -417,7 +462,84 @@ function ListDetail({ listId, onBack }) {
         </div>
       )}
 
-      {/* Table membres */}
+      {/* ── Bulk action bar ─────────────────────────────── */}
+      {selected.length > 0 && (
+        <div style={{
+          display:"flex", alignItems:"center", gap:10,
+          padding:"10px 16px",
+          background:"#0f172a", borderRadius:10,
+          boxShadow:"0 4px 16px rgba(0,0,0,.2)",
+          flexWrap:"wrap"
+        }}>
+          {/* Badge count */}
+          <div style={{
+            minWidth:26, height:26, borderRadius:7,
+            background:"rgba(255,255,255,.15)",
+            display:"flex", alignItems:"center", justifyContent:"center",
+            fontSize:13, fontWeight:700, color:"#fff", padding:"0 6px"
+          }}>
+            {selected.length}
+          </div>
+          <span style={{ color:"rgba(255,255,255,.7)", fontSize:13 }}>
+            contact{selected.length > 1 ? "s" : ""} sélectionné{selected.length > 1 ? "s" : ""}
+          </span>
+
+          <div style={{ width:1, height:20, background:"rgba(255,255,255,.15)", margin:"0 4px" }}/>
+
+          {/* Action : Retirer de la liste */}
+          <button onClick={handleBulkRemove} disabled={bulkRemoving}
+            style={{
+              display:"flex", alignItems:"center", gap:6,
+              padding:"6px 14px",
+              background:"rgba(239,68,68,.15)",
+              border:"1px solid rgba(239,68,68,.3)",
+              borderRadius:8, cursor:"pointer",
+              color:"#fca5a5", fontSize:13, fontWeight:500,
+              opacity: bulkRemoving ? 0.6 : 1
+            }}>
+            <Trash2 size={13}/> {bulkRemoving ? "Retrait..." : "Retirer de la liste"}
+          </button>
+
+          {/* Action : Exporter la sélection */}
+          <button
+            onClick={() => {
+              const rows = filtered
+                .filter(m => selected.includes(m.contact?.id))
+                .map(m => {
+                  const c = m.contact || {};
+                  return [c.email, c.firstName, c.lastName, c.company, c.status].join(",");
+                });
+              const csv = ["email,firstName,lastName,company,status", ...rows].join("\n");
+              const a = document.createElement("a");
+              a.href = URL.createObjectURL(new Blob([csv], { type:"text/csv" }));
+              a.download = `export-${list.name}.csv`;
+              a.click();
+            }}
+            style={{
+              display:"flex", alignItems:"center", gap:6,
+              padding:"6px 14px",
+              background:"rgba(255,255,255,.08)",
+              border:"1px solid rgba(255,255,255,.15)",
+              borderRadius:8, cursor:"pointer",
+              color:"rgba(255,255,255,.8)", fontSize:13, fontWeight:500
+            }}>
+            <Upload size={13}/> Exporter
+          </button>
+
+          {/* Annuler */}
+          <button onClick={() => setSelected([])}
+            style={{
+              marginLeft:"auto",
+              background:"none", border:"none", cursor:"pointer",
+              color:"rgba(255,255,255,.4)", fontSize:13,
+              display:"flex", alignItems:"center", gap:4
+            }}>
+            <X size={13}/> Annuler
+          </button>
+        </div>
+      )}
+
+      {/* Table */}
       <div style={{ ...styles.card, padding:0, overflow:"hidden" }}>
         {members.length === 0 ? (
           <div style={{ padding:50, textAlign:"center" }}>
@@ -440,16 +562,39 @@ function ListDetail({ listId, onBack }) {
             <table style={{ width:"100%", borderCollapse:"collapse", fontSize:14 }}>
               <thead>
                 <tr style={{ background:"#f8fafc" }}>
-                  {["Email","Nom","Entreprise","Statut","Ajouté le",""].map(h=>(
+                  {/* ── En-tête checkbox ── */}
+                  <th style={{ padding:"11px 16px", width:40 }}>
+                    <div
+                      onClick={toggleAll}
+                      style={{ cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                      <Checkbox checked={allSelected} indeterminate={someSelected}/>
+                    </div>
+                  </th>
+                  {["Email","Nom","Entreprise","Statut","Ajouté le",""].map(h => (
                     <th key={h} style={{ padding:"11px 16px", textAlign:"left", color:T.textSub, fontWeight:600, fontSize:12, whiteSpace:"nowrap" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((m, i) => {
-                  const c = m.contact || {};
+                  const c   = m.contact || {};
+                  const cId = c.id;
+                  const isSel = selected.includes(cId);
                   return (
-                    <tr key={m.id||i} style={{ borderTop:`1px solid ${T.border}`, background: i%2===0?"#fff":"#fafafa" }}>
+                    <tr key={m.id||i}
+                      style={{
+                        borderTop:`1px solid ${T.border}`,
+                        background: isSel ? "#eff6ff" : i%2===0 ? "#fff" : "#fafafa",
+                        transition:"background .1s"
+                      }}>
+                      {/* ── Cellule checkbox ── */}
+                      <td style={{ padding:"11px 16px" }}>
+                        <div
+                          onClick={() => toggleSelect(cId)}
+                          style={{ cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                          <Checkbox checked={isSel}/>
+                        </div>
+                      </td>
                       <td style={{ padding:"11px 16px", color:T.text, fontWeight:500 }}>{c.email||"—"}</td>
                       <td style={{ padding:"11px 16px", color:T.textSub }}>{[c.firstName,c.lastName].filter(Boolean).join(" ")||"—"}</td>
                       <td style={{ padding:"11px 16px", color:T.textSub }}>{c.company||"—"}</td>
@@ -458,9 +603,9 @@ function ListDetail({ listId, onBack }) {
                         {m.addedAt ? new Date(m.addedAt).toLocaleDateString("fr-FR") : "—"}
                       </td>
                       <td style={{ padding:"11px 16px" }}>
-                        <button onClick={() => handleRemove(c.id)} disabled={removing===c.id}
+                        <button onClick={() => handleRemove(cId)} disabled={removing===cId}
                           style={{ display:"flex", alignItems:"center", gap:5, background:"none", border:`1px solid ${T.danger}20`, borderRadius:6, padding:"4px 10px", cursor:"pointer", color:T.danger, fontSize:12 }}>
-                          {removing===c.id ? "..." : <><X size={12}/> Retirer</>}
+                          {removing===cId ? "..." : <><X size={12}/> Retirer</>}
                         </button>
                       </td>
                     </tr>
@@ -492,13 +637,13 @@ function ListDetail({ listId, onBack }) {
 
 // ─── Main ListsTab ────────────────────────────────────
 export default function ListsTab() {
-  const [lists, setLists]       = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [search, setSearch]     = useState("");
+  const [lists, setLists]         = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [search, setSearch]       = useState("");
   const [showModal, setShowModal] = useState(false);
-  const [editing, setEditing]   = useState(null);
-  const [detailId, setDetailId] = useState(null); // on passe juste l'id
-  const [openMenu, setOpenMenu] = useState(null);
+  const [editing, setEditing]     = useState(null);
+  const [detailId, setDetailId]   = useState(null);
+  const [openMenu, setOpenMenu]   = useState(null);
 
   useEffect(() => { fetchLists(); }, []);
 
@@ -523,8 +668,7 @@ export default function ListsTab() {
 
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-
-      {/* Toolbar */}
+      <div style={{ ...styles.card, padding: 14 }}>
       <div style={{ display:"flex", gap:12, alignItems:"center", flexWrap:"wrap" }}>
         <div style={{ flex:1, minWidth:220, position:"relative" }}>
           <Search size={15} color={T.textSub} style={{ position:"absolute", left:11, top:"50%", transform:"translateY(-50%)" }}/>
@@ -537,8 +681,8 @@ export default function ListsTab() {
           <Plus size={15}/> Nouvelle liste
         </button>
       </div>
+      </div>
 
-      {/* Grid */}
       {loading ? (
         <div style={{ padding:60, textAlign:"center", color:T.textSub }}>Chargement...</div>
       ) : filtered.length === 0 ? (
@@ -551,7 +695,6 @@ export default function ListsTab() {
         <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(270px,1fr))", gap:16 }}>
           {filtered.map(l => (
             <div key={l.id} style={{ ...styles.card, padding:20, position:"relative" }}>
-              {/* Top */}
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
                 <div style={{ width:42, height:42, borderRadius:10, background:"#eff6ff", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
                   <List size={20} color={T.primary}/>
@@ -573,14 +716,10 @@ export default function ListsTab() {
                   )}
                 </div>
               </div>
-
-              {/* Info — clic pour détail */}
               <div style={{ marginTop:12, cursor:"pointer" }} onClick={() => setDetailId(l.id)}>
                 <h3 style={{ margin:"0 0 4px", color:T.text, fontSize:16, fontWeight:600 }}>{l.name}</h3>
                 {l.description && <p style={{ margin:"0 0 6px", color:T.textSub, fontSize:13, lineHeight:1.5 }}>{l.description}</p>}
               </div>
-
-              {/* Footer */}
               <div style={{ display:"flex", alignItems:"center", marginTop:14, paddingTop:14, borderTop:`1px solid ${T.border}` }}>
                 <span style={{ display:"flex", alignItems:"center", gap:5, color:T.textSub, fontSize:13 }}>
                   <Users size={13}/> {l._count?.contacts ?? 0} contacts
