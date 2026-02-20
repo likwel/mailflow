@@ -4,11 +4,12 @@ import { T, styles } from "../../theme";
 import client from "../../api/client";
 import {
     Workflow, Mail, BarChart3, Plus, Search, Play, Pause,
-    Copy, Trash2, Settings, Edit, RefreshCw
+    Copy, Trash2, Settings, Edit, RefreshCw, Pencil
 } from "lucide-react";
 
 import CreateWorkflowModal from "../../components/automations/CreateWorkflowModal";
 import WorkflowEditor from "../../components/automations/WorkflowEditor";
+import WorkflowCard from "../../components/automations/WorkflowCard";
 
 export default function Automations() {
     const [activeTab, setActiveTab] = useState("workflows");
@@ -342,103 +343,22 @@ function WorkflowsTab({ workflows, loading, onToggleStatus, onDuplicate, onDelet
   );
 
   return (
-    <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
-      {workflows.map(workflow => (
-        <div
-          key={workflow.id}
-          style={{
-            background: "#fff",
-            border: `1px solid ${T.border}`,
-            borderRadius: 14,
-            overflow: "hidden",
-            transition: "all .2s",
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.borderColor = T.primary;
-            e.currentTarget.style.boxShadow = "0 4px 16px rgba(99,102,241,.12)";
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.borderColor = T.border;
-            e.currentTarget.style.boxShadow = "none";
-          }}>
-
-          {/* ── Bande couleur selon statut ── */}
-          {/* <div style={{
-            height: 2,
-            background: workflow.status === "active" ? "#10b981" : workflow.status === "draft" ? "#eab308" : "#e2e8f0"
-          }}/> */}
-
-          <div style={{ padding: "16px 20px" }}>
-            {/* ── Header ── */}
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
-
-              {/* Icône */}
-              <div style={{
-                width: 44, height: 44, borderRadius: 11, flexShrink: 0,
-                background: "#ede9fe",
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}>
-                <Workflow size={20} color="#6366f1"/>
-              </div>
-
-              {/* Infos */}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 4 }}>
-                  <h3 style={{ fontSize: 15, fontWeight: 700, color: T.text, margin: 0 }}>
-                    {workflow.name}
-                  </h3>
-                  <WFStatusBadge status={workflow.status}/>
-                </div>
-                <p style={{ color: T.textSub, fontSize: 13, margin: 0, lineHeight: 1.5 }}>
-                  {workflow.description || "Aucune description"}
-                </p>
-                <p style={{ color: T.textSub, fontSize: 11, margin: "6px 0 0" }}>
-                  Mis à jour le {new Date(workflow.updatedAt).toLocaleDateString("fr-FR")}
-                </p>
-              </div>
-
-              {/* Actions */}
-              <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                <ActionBtn
-                  title={workflow.status === "active" ? "Désactiver" : "Activer"}
-                  onClick={() => onToggleStatus(workflow.id, workflow.status)}>
-                  {workflow.status === "active" ? <Pause size={15}/> : <Play size={15}/>}
-                </ActionBtn>
-                <ActionBtn title="Dupliquer" onClick={() => onDuplicate(workflow)}>
-                  <Copy size={15}/>
-                </ActionBtn>
-                <ActionBtn title="Modifier" onClick={() => onEdit(workflow)}>
-                  <Edit size={15}/>
-                </ActionBtn>
-                <ActionBtn title="Supprimer" danger onClick={() => onDelete(workflow.id)}>
-                  <Trash2 size={15}/>
-                </ActionBtn>
-              </div>
-            </div>
-
-            {/* ── Stats ── */}
-            <div style={{
-              display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12,
-              marginTop: 16, paddingTop: 16, borderTop: `1px solid ${T.border}`,
-            }}>
-              {[
-                { label: "Envoyés",     value: workflow.stats?.sent        || 0,    color: T.text    },
-                { label: "Ouverts",     value: `${workflow.stats?.openRate  || 0}%`, color: T.primary },
-                { label: "Clics",       value: `${workflow.stats?.clickRate || 0}%`, color: "#10b981" },
-                { label: "Conversions", value: workflow.stats?.conversions  || 0,    color: "#f59e0b" },
-              ].map(s => (
-                <div key={s.label} style={{
-                  padding: "10px 12px", borderRadius: 8,
-                  background: "#f8fafc", textAlign: "center",
-                }}>
-                  <p style={{ fontSize: 11, color: T.textSub, margin: "0 0 4px", fontWeight: 600 }}>{s.label}</p>
-                  <p style={{ fontSize: 18, fontWeight: 800, color: s.color, margin: 0 }}>{s.value}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      ))}
+    <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
+    {workflows.map(workflow => (
+        <WorkflowCard
+        key={workflow.id}
+        workflow={workflow}
+        T={T}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        onToggleStatus={onToggleStatus}
+        onDuplicate={onDuplicate}
+        onRename={async (id, { name, description }) => {
+            await client.put(`/automations/workflows/${id}`, { name, description });
+            // rafraîchir la liste
+        }}
+        />
+    ))}
     </div>
   );
 }

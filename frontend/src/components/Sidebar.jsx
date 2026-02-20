@@ -28,7 +28,7 @@ const NAV_ITEMS = [
   { key: "bulk", icon: FiMail, label: "Envoi mail" },
   { key: "logs", icon: FiFileText, label: "Historique" },
   { key: "apikeys", icon: FiKey, label: "Clés API" },
-  { key: "templates", icon: FaLayerGroup, label: "Modèles" },
+  { key: "templates", icon: FaLayerGroup, label: "Templates" },
   { key: "automations", icon: Workflow, label: "Automatisation" },
   { key: "contacts", icon: FiUsers, label: "Contacts" },
   { key: "settings", icon: FiSettings, label: "Paramètres" },

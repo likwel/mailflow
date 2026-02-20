@@ -83,7 +83,7 @@ const NAV_SECTIONS = [
       { 
         key: "templates", 
         icon: FaLayerGroup, 
-        label: "Modèles",
+        label: "Templates",
         description: "Bibliothèque de templates",
         badge: null,
         plan: "free"

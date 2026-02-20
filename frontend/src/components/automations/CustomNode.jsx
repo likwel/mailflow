@@ -1,191 +1,225 @@
 // src/components/automations/CustomNode.jsx
 import { Handle, Position } from "reactflow";
-import { useState } from "react";
-import {
-  Zap, Clock, Mail, GitBranch, Tag, Globe,
-  Trash2, Settings, CheckCircle, XCircle, Loader
-} from "lucide-react";
+import { Plus, Zap, Clock, Mail, GitBranch, Tag, Globe,
+  MessageSquare, Bell, UserPlus, UserMinus, UserCheck,
+  FileText, BarChart2, Star, RefreshCw, Slash,
+  Phone, Send, Database, Filter, Shuffle, Copy,
+  AlarmClock, Calendar, ThumbsUp, Archive, Trash2, Bot} from "lucide-react";
 
 const NODE_CONFIG = {
-  trigger:   { icon: Zap,       color: "#f59e0b", bg: "#fef3c7", label: "Déclencheur" },
-  delay:     { icon: Clock,     color: "#6366f1", bg: "#ede9fe", label: "Délai"       },
-  email:     { icon: Mail,      color: "#0891b2", bg: "#e0f2fe", label: "Email"       },
-  condition: { icon: GitBranch, color: "#10b981", bg: "#d1fae5", label: "Condition"   },
-  tag:       { icon: Tag,       color: "#8b5cf6", bg: "#ede9fe", label: "Tag"         },
-  webhook:   { icon: Globe,     color: "#ef4444", bg: "#fee2e2", label: "Webhook"     },
-};
+  // ── Déclencheurs ──────────────────────────────────────────────────────────
+  trigger:        { Icon: Zap,          color: "#f59e0b", bg: "#fff", border: "#e5e7eb", iconBg: "#fffbeb", label: "Déclencheur"    },
+  schedule:       { Icon: Calendar,     color: "#f97316", bg: "#fff", border: "#e5e7eb", iconBg: "#fff7ed", label: "Planificateur"  },
+  alarm:          { Icon: AlarmClock,   color: "#fb923c", bg: "#fff", border: "#e5e7eb", iconBg: "#fff7ed", label: "Rappel"         },
 
-const STATUS_ICON = {
-  running: <Loader    size={11} color="#6366f1" style={{ animation: "spin 1s linear infinite" }}/>,
-  success: <CheckCircle size={11} color="#10b981"/>,
-  error:   <XCircle   size={11} color="#ef4444"/>,
+  // ── Timing ────────────────────────────────────────────────────────────────
+  delay:          { Icon: Clock,        color: "#6366f1", bg: "#fff", border: "#e5e7eb", iconBg: "#f5f3ff", label: "Délai"          },
+
+  // ── Communication ─────────────────────────────────────────────────────────
+  email:          { Icon: Mail,         color: "#0891b2", bg: "#fff", border: "#e5e7eb", iconBg: "#ecfeff", label: "Email"          },
+  sms:            { Icon: Phone,        color: "#0d9488", bg: "#fff", border: "#e5e7eb", iconBg: "#f0fdfa", label: "SMS"            },
+  push:           { Icon: Bell,         color: "#7c3aed", bg: "#fff", border: "#e5e7eb", iconBg: "#f5f3ff", label: "Notification"   },
+  chat:           { Icon: MessageSquare,color: "#2563eb", bg: "#fff", border: "#e5e7eb", iconBg: "#eff6ff", label: "Message"        },
+  telegram:       { Icon: Send,         color: "#0088cc", bg: "#fff", border: "#e5e7eb", iconBg: "#e8f4fd", label: "Telegram"       },
+
+  // ── Logique ───────────────────────────────────────────────────────────────
+  condition:      { Icon: GitBranch,    color: "#16a34a", bg: "#fff", border: "#e5e7eb", iconBg: "#f0fdf4", label: "Condition"      },
+  filter:         { Icon: Filter,       color: "#059669", bg: "#fff", border: "#e5e7eb", iconBg: "#ecfdf5", label: "Filtre"         },
+  split:          { Icon: Shuffle,      color: "#14b8a6", bg: "#fff", border: "#e5e7eb", iconBg: "#f0fdfa", label: "Split A/B"      },
+  loop:           { Icon: RefreshCw,    color: "#0891b2", bg: "#fff", border: "#e5e7eb", iconBg: "#ecfeff", label: "Boucle"         },
+  stop:           { Icon: Slash,        color: "#64748b", bg: "#fff", border: "#e5e7eb", iconBg: "#f8fafc", label: "Arrêt"          },
+
+  // ── Contact ───────────────────────────────────────────────────────────────
+  tag:            { Icon: Tag,          color: "#8b5cf6", bg: "#fff", border: "#e5e7eb", iconBg: "#faf5ff", label: "Tag"            },
+  add_contact:    { Icon: UserPlus,     color: "#6366f1", bg: "#fff", border: "#e5e7eb", iconBg: "#eef2ff", label: "Ajouter"        },
+  remove_contact: { Icon: UserMinus,    color: "#ef4444", bg: "#fff", border: "#e5e7eb", iconBg: "#fff1f2", label: "Supprimer"      },
+  update_contact: { Icon: UserCheck,    color: "#3b82f6", bg: "#fff", border: "#e5e7eb", iconBg: "#eff6ff", label: "Màj contact"    },
+  subscribe:      { Icon: ThumbsUp,     color: "#10b981", bg: "#fff", border: "#e5e7eb", iconBg: "#f0fdf4", label: "Abonner"        },
+  unsubscribe:    { Icon: Archive,      color: "#f59e0b", bg: "#fff", border: "#e5e7eb", iconBg: "#fffbeb", label: "Désabonner"     },
+
+  // ── Données ───────────────────────────────────────────────────────────────
+  webhook:        { Icon: Globe,        color: "#ef4444", bg: "#fff", border: "#e5e7eb", iconBg: "#fff1f2", label: "Webhook"        },
+  database:       { Icon: Database,     color: "#475569", bg: "#fff", border: "#e5e7eb", iconBg: "#f8fafc", label: "Base données"   },
+  copy_field:     { Icon: Copy,         color: "#64748b", bg: "#fff", border: "#e5e7eb", iconBg: "#f8fafc", label: "Copier champ"   },
+  score:          { Icon: Star,         color: "#eab308", bg: "#fff", border: "#e5e7eb", iconBg: "#fefce8", label: "Score"          },
+  note:           { Icon: FileText,     color: "#64748b", bg: "#fff", border: "#e5e7eb", iconBg: "#f8fafc", label: "Note"           },
+
+  // ── Reporting ─────────────────────────────────────────────────────────────
+  goal:           { Icon: BarChart2,    color: "#8b5cf6", bg: "#fff", border: "#e5e7eb", iconBg: "#faf5ff", label: "Objectif"       },
+  ai_agent: { Icon: Bot, color: "#6d28d9", bg: "#fff", border: "#e5e7eb", iconBg: "#ede9fe", label: "Agent IA" },
 };
 
 export default function CustomNode({ data, selected }) {
-  const [showConfig, setShowConfig] = useState(false);
-  const cfg = NODE_CONFIG[data.type] || NODE_CONFIG.trigger;
-  const Icon = cfg.icon;
-  const statusIcon = STATUS_ICON[data.status];
+  const cfg  = NODE_CONFIG[data.type] || NODE_CONFIG.trigger;
+  const { Icon } = cfg;
+  const isCondition = data.type === "condition";
+
+  const borderColor = selected
+    ? cfg.color
+    : data.status === "error"
+    ? "#ef4444"
+    : data.status === "success"
+    ? "#10b981"
+    : cfg.border;
+
+  const shadow = selected
+    ? `0 0 0 2px ${cfg.color}40, 0 4px 20px rgba(0,0,0,.12)`
+    : "0 1px 6px rgba(0,0,0,.08)";
 
   return (
-    <div style={{ position: "relative" }}>
-      {/* Handle entrée (haut) — pas sur trigger */}
-      {data.type !== "trigger" && (
-        <Handle
-          type="target" position={Position.Top}
-          style={{ width: 12, height: 12, background: cfg.color, border: "2px solid #fff", top: -6 }}
-        />
-      )}
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", fontFamily: "'Inter','Segoe UI',sans-serif", position: "relative" }}>
 
-      {/* Carte */}
-      <div style={{
-        width: 170, background: "#fff",
-        border: `1px solid ${selected ? cfg.color : data.status === "error" ? "#ef4444" : "#e2e8f0"}`,
-        borderRadius: 12,
-        boxShadow: selected
-          ? `0 0 0 3px ${cfg.color}30, 0 8px 24px rgba(0,0,0,.12)`
-          : "0 2px 8px rgba(0,0,0,.07)",
-        overflow: "hidden",
-        transition: "border-color .15s, box-shadow .15s",
-        fontFamily: "sans-serif",
-      }}>
+      {/* ── Wrapper node + bouton + ── */}
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
 
-        {/* Barre couleur top */}
-        <div style={{ height: 2, background: cfg.color }}/>
+        {/* Handle entrée gauche */}
+        {data.type !== "trigger" && (
+          <Handle
+            type="target" position={Position.Left}
+            style={{
+              width: 12, height: 12,
+              background: "#9ca3af",
+              border: "2px solid #fff",
+              left: -7, top: "40%",
+              transform: "translateY(-50%)",
+              boxShadow: "0 1px 4px rgba(0,0,0,.15)",
+            }}
+          />
+        )}
 
-        {/* Corps */}
-        <div style={{ padding: "5px 10px", display: "flex", alignItems: "center", gap: 8 }}>
+        {/* Carte principale */}
+        <div className="card-node"
+          onClick={() => data.onSelect?.()}
+          style={{
+            width: 60, height: 60,
+            background: cfg.bg,
+            border: `1.5px solid ${borderColor}`,
+            borderRadius: 16,
+            boxShadow: shadow,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer",
+            transition: "all .18s ease",
+            position: "relative",
+          }}
+          onMouseEnter={e => { if (!selected) e.currentTarget.style.boxShadow = `0 4px 16px rgba(0,0,0,.13)`; }}
+          onMouseLeave={e => { if (!selected) e.currentTarget.style.boxShadow = shadow; }}
+        >
+          {/* Icône */}
           <div style={{
-            width: 30, height: 30, borderRadius: 8,
-            background: cfg.bg, flexShrink: 0,
+            width: 48, height: 48, borderRadius: 12,
+            background: cfg.iconBg,
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
-            <Icon size={17} color={cfg.color}/>
+            <Icon size={26} color={cfg.color} strokeWidth={1.8}/>
           </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 8, color: "#94a3b8", fontWeight: 700, textTransform: "uppercase", letterSpacing: .5 }}>
-              {cfg.label}
+
+          {/* Badge statut */}
+          {data.status && data.status !== "idle" && (
+            <div style={{
+              position: "absolute", top: -5, right: -5,
+              width: 16, height: 16, borderRadius: "50%",
+              background:
+                data.status === "success" ? "#10b981" :
+                data.status === "error"   ? "#ef4444" : "#6366f1",
+              border: "2px solid #fff",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              {data.status === "running" && (
+                <div style={{
+                  width: 6, height: 6, borderRadius: "50%",
+                  border: "1.5px solid #fff",
+                  borderTopColor: "transparent",
+                  animation: "spin .7s linear infinite",
+                }}/>
+              )}
+              {data.status === "success" && <span style={{ fontSize: 10, color: "#fff", fontWeight: 900 }}>✓</span>}
+              {data.status === "error"   && <span style={{ fontSize: 10, color: "#fff", fontWeight: 900 }}>✕</span>}
             </div>
-            <div style={{ fontSize: 8, fontWeight: 700, color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {data.label}
-            </div>
-          </div>
-          <div style={{ display: "flex", gap: 3 }}>
-            <button
-              onClick={() => setShowConfig(o => !o)}
-              style={{ ...iconBtn, background: showConfig ? cfg.bg : "transparent", color: showConfig ? cfg.color : "#94a3b8" }}>
-              <Settings size={12}/>
-            </button>
-            <button
-              onClick={() => data.onDelete?.()}
-              style={{ ...iconBtn, color: "#94a3b8" }}
-              onMouseEnter={e => e.currentTarget.style.color = "#ef4444"}
-              onMouseLeave={e => e.currentTarget.style.color = "#94a3b8"}>
-              <Trash2 size={12}/>
-            </button>
-          </div>
+          )}
+
+          {/* Handles condition : true/false */}
+          {isCondition && (<>
+            <Handle id="true"  type="source" position={Position.Right}
+              style={{ ...handleStyle("#10b981"), top: "30%" }}
+            />
+            <Handle id="false" type="source" position={Position.Right}
+              style={{ ...handleStyle("#ef4444"), top: "70%" }}
+            />
+            {/* Labels true/false */}
+            <span style={{ position:"absolute", right:-30, top:"19%", fontSize:9, color:"#10b981", fontWeight:700 }}>true</span>
+            <span style={{ position:"absolute", right:-34, top:"60%", fontSize:9, color:"#ef4444", fontWeight:700 }}>false</span>
+          </>)}
+
+          {/* Handle sortie droite (non-condition) */}
+          {!isCondition && (
+            <Handle
+              type="source" position={Position.Right}
+              style={handleStyle(cfg.color)}
+            />
+          )}
         </div>
 
-        {/* Status bar */}
-        {data.status && data.status !== "idle" && (
-          <div style={{
-            display: "flex", alignItems: "center", gap: 5,
-            padding: "4px 12px",
-            background: data.status === "success" ? "#f0fdf4" : data.status === "error" ? "#fff1f2" : "#eff6ff",
-            borderTop: "1px solid #f1f5f9",
-            fontWeight : "bold",
-          }}>
-            {statusIcon}
-            <span style={{
-              fontSize: 10, fontWeight: 700,
-              color: data.status === "success" ? "#10b981" : data.status === "error" ? "#ef4444" : "#6366f1"
-            }}>
-              {data.status === "running" ? "En cours..." : data.status === "success" ? "Succès" : "Erreur"}
-            </span>
+        {/* Bouton + */}
+        <button
+          onClick={() => data.onAddNext?.()}
+          style={{
+            width: 28, height: 28, borderRadius: 8,
+            background: "#fff",
+            border: "1.5px solid #e5e7eb",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer",
+            boxShadow: "0 1px 4px rgba(0,0,0,.07)",
+            color: "#9ca3af",
+            transition: "all .15s",
+            flexShrink: 0,
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.borderColor = cfg.color;
+            e.currentTarget.style.color = cfg.color;
+            e.currentTarget.style.boxShadow = `0 2px 8px ${cfg.color}30`;
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.borderColor = "#e5e7eb";
+            e.currentTarget.style.color = "#9ca3af";
+            e.currentTarget.style.boxShadow = "0 1px 4px rgba(0,0,0,.07)";
+          }}
+        >
+          <Plus size={14} strokeWidth={2.5}/>
+        </button>
+      </div>
+
+      {/* Label sous la carte */}
+      <div style={{
+        marginTop: 5, textAlign: "center",
+        maxWidth: 100,
+        alignSelf : "flex-start",
+      }}>
+        <div style={{
+          fontSize: 12, fontWeight: 600, color: "#111827",
+          lineHeight: 1.3,
+          overflow: "hidden", textOverflow: "ellipsis",
+          display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
+        }}>
+          {data.label || cfg.label}
+        </div>
+        {data.status === "error" && data.errorMsg && (
+          <div style={{ fontSize: 9, color: "#ef4444", marginTop: 2 }}>
+            {data.errorMsg}
           </div>
         )}
       </div>
-
-      {/* Panel config inline */}
-      {showConfig && (
-        <div
-          onClick={e => e.stopPropagation()}
-          style={{
-            position: "absolute", top: "calc(100% + 8px)", left: 0, width: 200,
-            background: "#fff", border: `1px solid ${cfg.color}40`,
-            borderRadius: 10, padding: 12, zIndex: 100,
-            boxShadow: "0 8px 24px rgba(0,0,0,.12)",
-          }}>
-          <p style={{ margin: "0 0 8px", fontSize: 8, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>
-            Configuration
-          </p>
-          <NodeConfig type={data.type} config={data.config || {}} onChange={cfg => data.onConfigChange?.(cfg)}/>
-        </div>
-      )}
-
-      {/* Handle sortie (bas) */}
-      <Handle
-        type="source" position={Position.Bottom}
-        style={{ width: 12, height: 12, background: cfg.color, border: "2px solid #fff", bottom: -6 }}
-      />
-
-      {/* condition : 2 sorties (oui/non) */}
-      {data.type === "condition" && (
-        <>
-          <Handle id="yes" type="source" position={Position.Left}
-            style={{ width: 12, height: 12, background: "#10b981", border: "2px solid #fff", left: -6 }}/>
-          <Handle id="no"  type="source" position={Position.Right}
-            style={{ width: 12, height: 12, background: "#ef4444", border: "2px solid #fff", right: -6 }}/>
-        </>
-      )}
 
       <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 }
 
-function NodeConfig({ type, config, onChange }) {
-  const set = (k, v) => onChange({ ...config, [k]: v });
-  const inp = { width: "100%", padding: "5px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, outline: "none", boxSizing: "border-box", marginBottom: 6 };
-
-  if (type === "email") return (
-    <input value={config.subject||""} onChange={e=>set("subject",e.target.value)} placeholder="Sujet" style={inp}/>
-  );
-  if (type === "delay") return (
-    <div style={{ display:"flex", gap:4 }}>
-      <input type="number" value={config.duration||1} min={1} onChange={e=>set("duration",+e.target.value)} style={{ ...inp, width:60 }}/>
-      <select value={config.unit||"day"} onChange={e=>set("unit",e.target.value)} style={inp}>
-        <option value="minute">min</option>
-        <option value="hour">heure(s)</option>
-        <option value="day">jour(s)</option>
-      </select>
-    </div>
-  );
-  if (type === "trigger") return (
-    <select value={config.event||""} onChange={e=>set("event",e.target.value)} style={inp}>
-      <option value="contact.created">Nouveau contact</option>
-      <option value="contact.tagged">Tag ajouté</option>
-      <option value="email.opened">Email ouvert</option>
-      <option value="email.clicked">Lien cliqué</option>
-    </select>
-  );
-  if (type === "condition") return (<>
-    <input value={config.field||""}    onChange={e=>set("field",e.target.value)}    placeholder="Champ"  style={inp}/>
-    <select value={config.operator||"eq"} onChange={e=>set("operator",e.target.value)} style={inp}>
-      <option value="eq">est égal à</option>
-      <option value="contains">contient</option>
-      <option value="gt">supérieur à</option>
-    </select>
-    <input value={config.value||""}    onChange={e=>set("value",e.target.value)}    placeholder="Valeur" style={inp}/>
-  </>);
-  if (type === "tag")     return <input value={config.tag||""} onChange={e=>set("tag",e.target.value)} placeholder="Nom du tag" style={inp}/>;
-  if (type === "webhook") return <input value={config.url||""} onChange={e=>set("url",e.target.value)} placeholder="https://..." style={inp}/>;
-  return null;
+function handleStyle(color) {
+  return {
+    width: 12, height: 12,
+    background: "#9ca3af",
+    border: "2px solid #fff",
+    right: -6,
+    boxShadow: "0 1px 4px rgba(0,0,0,.15)",
+  };
 }
-
-const iconBtn = {
-  width: 22, height: 22, borderRadius: 5,
-  border: "none", cursor: "pointer",
-  display: "flex", alignItems: "center", justifyContent: "center",
-  transition: "all .15s",
-};

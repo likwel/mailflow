@@ -49,7 +49,7 @@ export default function Modal({ open, onClose, title, subtitle, icon: Icon, foot
           display: "flex", flexDirection: "column",
           overflow: "hidden",
           // Responsive : sur très petits écrans, prend tout l'écran
-          ...(typeof maxWidth === "number" && { "@media (max-width: 480px)": { borderRadius: 0, maxHeight: "100vh" } }),
+          ...(typeof maxWidth === "number" && { "@media (maxWidth: 480px)": { borderRadius: 0, maxHeight: "100vh" } }),
         }}>
 
         {/* ── Header style client mail ── */}
