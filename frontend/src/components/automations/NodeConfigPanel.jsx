@@ -1,6 +1,7 @@
 // src/components/automations/NodeConfigPanel.jsx
 // Panel latéral droit qui s'ouvre quand on clique un node — style n8n
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import client from "../../api/client";
 
 // ── Imports à ajouter ──────────────────────────────────────────────────────
 import {
@@ -328,6 +329,7 @@ function ScheduleForm({ config, set }) {
           { value: "Europe/London",   label: "Londres (UTC+0)"   },
           { value: "America/New_York",label: "New York (UTC-5)"  },
           { value: "Asia/Tokyo",      label: "Tokyo (UTC+9)"     },
+          { value: "Indian/Antananarivo", label: "Tananarive (UTC+3)" },
         ]}/>
       </Field>
     </Section>
@@ -524,34 +526,154 @@ function SplitForm({ config, set }) {
 
 function LoopForm({ config, set }) {
   return (<>
-    <Section title="Boucle" icon="🔁">
-      <Field label="Source de la liste">
-        <Select value={config.source||"contacts"} onChange={v => set("source", v)} options={[
-          { value: "contacts",  label: "Contacts d'une liste" },
-          { value: "tags",      label: "Contacts avec un tag" },
-          { value: "webhook",   label: "Tableau JSON (webhook)"},
+    <Section title="Source de la boucle" icon="🔁">
+      <Field label="Type de source">
+        <Select value={config.source || "contacts"} onChange={v => set("source", v)} options={[
+          { value: "contacts",  label: "👥 Contacts d'une liste"     },
+          { value: "tags",      label: "🏷️ Contacts avec un tag"     },
+          { value: "variable",  label: "📦 Variable du contexte"     },
+          { value: "webhook",   label: "🌐 Tableau JSON (webhook)"   },
+          { value: "static",    label: "✏️ Liste statique (JSON)"    },
         ]}/>
       </Field>
+
+      {/* ── Contacts d'une liste ───────────────────── */}
       {config.source === "contacts" && (
-        <Field label="ID de liste">
+        <Field label="Liste de contacts">
           <Input value={config.listId||""} onChange={v => set("listId", v)} placeholder="ID de la liste"/>
         </Field>
       )}
+
+      {/* ── Contacts avec un tag ───────────────────── */}
       {config.source === "tags" && (
         <Field label="Tag">
           <Input value={config.tag||""} onChange={v => set("tag", v)} placeholder="nom-du-tag"/>
         </Field>
       )}
+
+      {/* ── Variable du contexte (ex: sortie webhook) ─ */}
+      {config.source === "variable" && (<>
+        <Field label="Nom de la variable">
+          <Input
+            value={config.variableName||""}
+            onChange={v => set("variableName", v)}
+            placeholder="ex: response"
+          />
+        </Field>
+        <Field label="Chemin vers le tableau (optionnel)">
+          <Input
+            value={config.jsonPath||""}
+            onChange={v => set("jsonPath", v)}
+            placeholder="ex: data  ou  results.items"
+          />
+          <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 3 }}>
+            Laisser vide si la variable est déjà un tableau
+          </div>
+        </Field>
+      </>)}
+
+      {/* ── Tableau JSON statique ──────────────────── */}
+      {config.source === "static" && (
+        <Field label="Tableau JSON">
+          <textarea
+            value={config.staticData||"[]"}
+            onChange={e => set("staticData", e.target.value)}
+            rows={4}
+            style={{
+              width: "100%", padding: "6px 8px", borderRadius: 6, fontSize: 11,
+              border: "1px solid #e2e8f0", fontFamily: "monospace", resize: "vertical",
+              boxSizing: "border-box",
+            }}
+            placeholder='[{"name":"Alice"},{"name":"Bob"}]'
+          />
+        </Field>
+      )}
+
+      {/* ── webhook : même comportement que variable ── */}
+      {config.source === "webhook" && (<>
+        <Field label="Nom de la variable webhook">
+          <Input
+            value={config.variableName||""}
+            onChange={v => set("variableName", v)}
+            placeholder="ex: response"
+          />
+        </Field>
+        <Field label="Chemin vers le tableau">
+          <Input
+            value={config.jsonPath||""}
+            onChange={v => set("jsonPath", v)}
+            placeholder="ex: data"
+          />
+        </Field>
+      </>)}
+    </Section>
+
+    {/* ── Condition de départ ────────────────────────────────────────────── */}
+    <Section title="Condition d'exécution" icon="✅">
+      <Toggle
+        label="Exécuter seulement si la liste n'est pas vide"
+        checked={config.skipIfEmpty ?? true}
+        onChange={v => set("skipIfEmpty", v)}
+      />
+      <Toggle
+        label="Arrêter la boucle si une itération échoue"
+        checked={config.stopOnError ?? false}
+        onChange={v => set("stopOnError", v)}
+      />
+      <Field label="Nombre max d'itérations (0 = illimité)">
+        <Input
+          type="number" min={0}
+          value={config.maxIterations ?? 0}
+          onChange={v => set("maxIterations", +v)}
+        />
+      </Field>
+    </Section>
+
+    {/* ── Délai entre itérations ─────────────────────────────────────────── */}
+    <Section title="Timing" icon="⏱️">
       <Field label="Délai entre chaque itération">
         <div style={{ display: "flex", gap: 8 }}>
-          <Input type="number" value={config.iterDelay||0} min={0} onChange={v => set("iterDelay", +v)} style={{ width: 70 }}/>
-          <Select value={config.iterUnit||"second"} onChange={v => set("iterUnit", v)} options={[
-            { value: "second", label: "sec"  },
-            { value: "minute", label: "min"  },
-            { value: "hour",   label: "h"    },
+          <Input
+            type="number" min={0}
+            value={config.iterDelay || 0}
+            onChange={v => set("iterDelay", +v)}
+            style={{ width: 70 }}
+          />
+          <Select value={config.iterUnit || "second"} onChange={v => set("iterUnit", v)} options={[
+            { value: "second", label: "sec" },
+            { value: "minute", label: "min" },
+            { value: "hour",   label: "h"   },
           ]}/>
         </div>
       </Field>
+    </Section>
+
+    {/* ── Variable d'itération ──────────────────────────────────────────── */}
+    <Section title="Variable d'itération" icon="📌">
+      <Field label="Nom de la variable courante">
+        <Input
+          value={config.iteratorVar || "item"}
+          onChange={v => set("iteratorVar", v)}
+          placeholder="item"
+        />
+        <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 3 }}>
+          Accessible dans les nœuds suivants via <code>{"{{item}}"}</code>
+        </div>
+      </Field>
+      <Toggle
+        label="Exposer l'index de l'itération"
+        checked={config.exposeIndex ?? false}
+        onChange={v => set("exposeIndex", v)}
+      />
+      {config.exposeIndex && (
+        <Field label="Nom de la variable index">
+          <Input
+            value={config.indexVar || "index"}
+            onChange={v => set("indexVar", v)}
+            placeholder="index"
+          />
+        </Field>
+      )}
     </Section>
   </>);
 }
@@ -777,24 +899,204 @@ function TriggerForm({ config, set }) {
 }
 
 /* ── Email ───────────────────────────────────────────── */
+
 function EmailForm({ config, set }) {
+  // requires: import client from "../../api/client";
+  const [templates,    setTemplates]    = useState([]);
+  const [lists,        setLists]        = useState([]);
+  const [contacts,     setContacts]     = useState([]);
+  const [search,       setSearch]       = useState("");
+  const [loadingTpl,   setLoadingTpl]   = useState(false);
+  const [loadingRecip, setLoadingRecip] = useState(false);
+
+  // ── Chargement initial : templates + listes + segments ──────────────────
+  useEffect(() => {
+    setLoadingTpl(true);
+    client.get("/dashboard/templates")
+      .then(r => {
+        const d = r.data;
+        setTemplates(Array.isArray(d) ? d : (d?.templates || d?.data || []));
+      })
+      .catch(() => {})
+      .finally(() => setLoadingTpl(false));
+
+    setLoadingRecip(true);
+    client.get("/contact-lists")
+      .then(r => {
+        const d = r.data;
+        const arr = Array.isArray(d)       ? d
+          : Array.isArray(d?.lists)        ? d.lists
+          : Array.isArray(d?.data)         ? d.data
+          : [];
+        setLists(arr);
+      })
+      .catch(() => setLists([]))
+      .finally(() => setLoadingRecip(false));
+  }, []);
+  
+  // ── Recherche de contacts (debounce 400ms) ───────────────────────────────
+  useEffect(() => {
+    if (!search.trim()) { setContacts([]); return; }
+    const t = setTimeout(() =>
+      client.get(`/contacts?search=${encodeURIComponent(search)}&limit=20`)
+        .then(r => setContacts(r.data || []))
+        .catch(() => {}),
+    400);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  // ── Template sélectionné → pré-remplir le sujet ──────────────────────────
+  const selectedTpl = templates.find(t => t.id === config.templateId);
+  const handleTemplateChange = id => {
+    set("templateId", id);
+    const tpl = templates.find(t => t.id === id);
+    if (tpl?.subject && !config.subject) set("subject", tpl.subject);
+  };
+
+  // ── Destinataires : tableau mixte [{type, id, label}] ────────────────────
+  const recipients = config.recipients || [];
+  const addRecipient = (type, id, label) => {
+    if (recipients.find(r => r.type === type && r.id === id)) return;
+    set("recipients", [...recipients, { type, id, label }]);
+  };
+  const removeRecipient = id =>
+    set("recipients", recipients.filter(r => r.id !== id));
+
   return (<>
-    <Section title="Contenu" icon="✉️">
-      <Field label="Sujet *">
-        <Input value={config.subject||""} onChange={v => set("subject", v)} placeholder="Objet de l'email"/>
+    {/* ── TEMPLATE ──────────────────────────────────────────────────────── */}
+    <Section title="Template" icon="📄">
+      <Field label="Template *">
+        {loadingTpl
+          ? <span style={{ fontSize: 12, color: "#94a3b8" }}>Chargement…</span>
+          : <Select
+              value={config.templateId || ""}
+              onChange={handleTemplateChange}
+              options={[
+                { value: "", label: "— Sélectionner —" },
+                ...templates.map(t => ({ value: t.id, label: t.name })),
+              ]}
+            />
+        }
       </Field>
-      <Field label="Template">
-        <Select value={config.templateId||""} onChange={v => set("templateId", v)} options={[
-          { value: "",              label: "— Sélectionner —"  },
-          { value: "welcome",       label: "👋 Bienvenue"       },
-          { value: "promo",         label: "🎁 Promotion"       },
-          { value: "followup",      label: "🔁 Relance"         },
-          { value: "newsletter",    label: "📰 Newsletter"      },
-          { value: "transactional", label: "🧾 Transactionnel"  },
-        ]}/>
+
+      {/* Aperçu du template sélectionné */}
+      {selectedTpl && (
+        <div style={{
+          marginTop: 6, padding: "8px 10px", borderRadius: 6,
+          background: "#f8fafc", border: "1px solid #e2e8f0", fontSize: 11,
+        }}>
+          <div style={{ color: "#64748b" }}>
+            <b>Sujet :</b> {selectedTpl.subject}
+          </div>
+          {selectedTpl.html && (
+            <div style={{ color: "#94a3b8", marginTop: 3 }}>
+              <b>Aperçu :</b>{" "}
+              {selectedTpl.html.replace(/<[^>]*>/g, "").slice(0, 80)}…
+            </div>
+          )}
+        </div>
+      )}
+
+      <Field label="Sujet *">
+        <Input
+          value={config.subject || ""}
+          onChange={v => set("subject", v)}
+          placeholder="Objet de l'email"
+        />
       </Field>
     </Section>
 
+    {/* ── DESTINATAIRES ─────────────────────────────────────────────────── */}
+    <Section title="Destinataires" icon="👥">
+      <RecipientTabs
+        active={config.recipientTab || "list"}
+        onChange={v => set("recipientTab", v)}
+      />
+
+      {loadingRecip
+        ? <span style={{ fontSize: 12, color: "#94a3b8" }}>Chargement…</span>
+        : <>
+          {/* ── Listes ──────────────────────────────────────── */}
+          {(config.recipientTab === "list" || !config.recipientTab) && (
+            <Field label="Liste de contacts">
+              <Select
+                value=""
+                onChange={id => {
+                  const l = lists.find(x => x.id === id);
+                  if (l) addRecipient("list", l.id, `📋 ${l.name}`);
+                }}
+                options={[
+                  { value: "", label: "— Ajouter une liste —" },
+                  ...lists.map(l => ({ value: l.id, label: l.name })),
+                ]}
+              />
+            </Field>
+          )}
+
+          {/* ── Contact individuel ──────────────────────────── */}
+          {config.recipientTab === "contact" && (
+            <Field label="Rechercher un contact">
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Nom, email…"
+                style={{
+                  width: "100%", padding: "6px 8px", borderRadius: 6,
+                  border: "1px solid #e2e8f0", fontSize: 12, boxSizing: "border-box",
+                }}
+              />
+              {contacts.length > 0 && (
+                <div style={{
+                  marginTop: 4, border: "1px solid #e2e8f0", borderRadius: 6,
+                  background: "#fff", maxHeight: 160, overflowY: "auto",
+                }}>
+                  {contacts.map(c => (
+                    <div
+                      key={c.id}
+                      onClick={() => {
+                        addRecipient("contact", c.id, `👤 ${c.firstName} ${c.lastName} <${c.email}>`);
+                        setSearch("");
+                        setContacts([]);
+                      }}
+                      style={{
+                        padding: "6px 10px", fontSize: 12, cursor: "pointer",
+                        borderBottom: "1px solid #f1f5f9",
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"}
+                      onMouseLeave={e => e.currentTarget.style.background = ""}
+                    >
+                      <b>{c.firstName} {c.lastName}</b>
+                      <span style={{ color: "#94a3b8", marginLeft: 6 }}>{c.email}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Field>
+          )}
+        </>
+      }
+
+      {/* ── Tags des destinataires sélectionnés ───────────── */}
+      {recipients.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
+          {recipients.map(r => (
+            <span key={r.id} style={{
+              display: "inline-flex", alignItems: "center", gap: 4,
+              padding: "3px 8px", borderRadius: 99, fontSize: 11,
+              background: "#eff6ff", color: "#3b82f6", border: "1px solid #bfdbfe",
+            }}>
+              {r.label}
+              <span
+                onClick={() => removeRecipient(r.id)}
+                style={{ cursor: "pointer", color: "#94a3b8", fontWeight: 700, lineHeight: 1 }}
+              >×</span>
+            </span>
+          ))}
+        </div>
+      )}
+    </Section>
+
+    {/* ── EXPÉDITEUR ────────────────────────────────────────────────────── */}
     <Section title="Expéditeur" icon="👤">
       <Field label="Nom">
         <Input value={config.fromName||""} onChange={v => set("fromName", v)} placeholder="Votre nom"/>
@@ -804,12 +1106,13 @@ function EmailForm({ config, set }) {
       </Field>
     </Section>
 
+    {/* ── ENVOI ─────────────────────────────────────────────────────────── */}
     <Section title="Envoi" icon="📅">
       <Field label="Moment d'envoi">
         <Select value={config.sendTime||"immediate"} onChange={v => set("sendTime", v)} options={[
-          { value: "immediate", label: "⚡ Immédiat"               },
-          { value: "best_time", label: "🤖 Meilleur moment (IA)"   },
-          { value: "scheduled", label: "🕘 Heure fixe"             },
+          { value: "immediate", label: "⚡ Immédiat"             },
+          { value: "best_time", label: "🤖 Meilleur moment (IA)" },
+          { value: "scheduled", label: "🕘 Heure fixe"           },
         ]}/>
       </Field>
       {config.sendTime === "scheduled" && (
@@ -819,12 +1122,37 @@ function EmailForm({ config, set }) {
       )}
     </Section>
 
+    {/* ── SUIVI ─────────────────────────────────────────────────────────── */}
     <Section title="Suivi" icon="📊">
-      <Toggle label="Tracker les ouvertures" checked={config.trackOpens??true}   onChange={v => set("trackOpens", v)}/>
-      <Toggle label="Tracker les clics"      checked={config.trackClicks??true}  onChange={v => set("trackClicks", v)}/>
-      <Toggle label="Lien de désabonnement"  checked={config.unsubLink??true}    onChange={v => set("unsubLink", v)}/>
+      <Toggle label="Tracker les ouvertures" checked={config.trackOpens??true}  onChange={v => set("trackOpens", v)}/>
+      <Toggle label="Tracker les clics"      checked={config.trackClicks??true} onChange={v => set("trackClicks", v)}/>
+      <Toggle label="Lien de désabonnement"  checked={config.unsubLink??true}   onChange={v => set("unsubLink", v)}/>
     </Section>
   </>);
+}
+
+// ── Tabs destinataires ─────────────────────────────────────────────────────
+function RecipientTabs({ active, onChange }) {
+  const tabs = [
+    { value: "list",    label: "📋 Listes"   },
+    // { value: "segment", label: "⚡ Segments" },
+    { value: "contact", label: "👤 Contact"  },
+  ];
+  return (
+    <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
+      {tabs.map(t => (
+        <button key={t.value} onClick={() => onChange(t.value)} style={{
+          flex: 1, padding: "5px 4px", borderRadius: 6, border: "none",
+          cursor: "pointer", fontSize: 11, fontWeight: 600,
+          background: active === t.value ? "#6366f1" : "#f1f5f9",
+          color:      active === t.value ? "#fff"    : "#64748b",
+          transition: "all .15s",
+        }}>
+          {t.label}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 /* ── Delay ───────────────────────────────────────────── */
@@ -892,6 +1220,9 @@ function DelayForm({ config, set }) {
 
 /* ── Condition ───────────────────────────────────────── */
 function ConditionForm({ config, set }) {
+  // Source du champ : contact ou variable workflow (node précédent)
+  const source = config.source || "contact";
+
   return (<>
     <Section title="Logique" icon="🔀">
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -906,47 +1237,109 @@ function ConditionForm({ config, set }) {
             cursor: "pointer", transition: "all .15s",
           }}>
             <div style={{ fontSize: 18 }}>{opt.emoji}</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: config.logic === opt.value ? "#10b981" : "#64748b", marginTop: 4 }}>{opt.label}</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: config.logic === opt.value ? "#10b981" : "#64748b", marginTop: 4 }}>
+              {opt.label}
+            </div>
+          </button>
+        ))}
+      </div>
+    </Section>
+
+    <Section title="Source de données" icon="🔌">
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        {[
+          { value: "contact",  label: "Contact",          emoji: "👤", desc: "Champs du contact" },
+          { value: "variable", label: "Node précédent",   emoji: "🔗", desc: "Variable du workflow" },
+        ].map(opt => (
+          <button key={opt.value} onClick={() => set("source", opt.value)} style={{
+            padding: "10px 8px", borderRadius: 10, textAlign: "center",
+            border: `2px solid ${source === opt.value ? "#10b981" : "#e2e8f0"}`,
+            background: source === opt.value ? "#f0fdf4" : "#fff",
+            cursor: "pointer", transition: "all .15s",
+          }}>
+            <div style={{ fontSize: 18 }}>{opt.emoji}</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: source === opt.value ? "#10b981" : "#64748b", marginTop: 2 }}>
+              {opt.label}
+            </div>
+            <div style={{ fontSize: 9, color: "#94a3b8", marginTop: 2 }}>
+              {opt.desc}
+            </div>
           </button>
         ))}
       </div>
     </Section>
 
     <Section title="Règle" icon="📋">
-      <Field label="Champ">
-        <Select value={config.field||""} onChange={v => set("field", v)} options={[
-          { value: "",               label: "— Sélectionner —"     },
-          { value: "email",          label: "📧 Email"              },
-          { value: "tags",           label: "🏷 Tags"               },
-          { value: "country",        label: "🌍 Pays"               },
-          { value: "score",          label: "⭐ Score"              },
-          { value: "last_activity",  label: "🕒 Dernière activité"  },
-          { value: "custom_field",   label: "🔧 Champ personnalisé" },
-        ]}/>
-      </Field>
 
-      {config.field === "custom_field" && (
+      {/* ── Source = contact ── */}
+      {source === "contact" && (
+        <Field label="Champ">
+          <Select value={config.field||""} onChange={v => set("field", v)} options={[
+            { value: "",               label: "— Sélectionner —"     },
+            { value: "email",          label: "📧 Email"              },
+            { value: "tags",           label: "🏷 Tags"               },
+            { value: "country",        label: "🌍 Pays"               },
+            { value: "score",          label: "⭐ Score"              },
+            { value: "last_activity",  label: "🕒 Dernière activité"  },
+            { value: "custom_field",   label: "🔧 Champ personnalisé" },
+          ]}/>
+        </Field>
+      )}
+
+      {source === "contact" && config.field === "custom_field" && (
         <Field label="Clé du champ">
           <Input value={config.customFieldKey||""} onChange={v => set("customFieldKey", v)} placeholder="ma_variable"/>
         </Field>
       )}
 
+      {/* ── Source = variable node précédent ── */}
+      {source === "variable" && (
+        <Field label="Nom de la variable">
+          <Input
+            value={config.variableName||""}
+            onChange={v => set("variableName", v)}
+            placeholder="ex: webhook_response, ai_result, user_id"
+          />
+          <span style={{ fontSize: 9, color: "#94a3b8", marginTop: 3 }}>
+            Variable stockée par le node précédent (webhook, Agent IA…)
+          </span>
+        </Field>
+      )}
+
+      {/* ── Chemin JSON si la variable est un objet ── */}
+      {source === "variable" && config.variableName && (
+        <Field label="Chemin JSON (optionnel)">
+          <Input
+            value={config.jsonPath||""}
+            onChange={v => set("jsonPath", v)}
+            placeholder="ex: data.status  ou  items[0].name"
+            style={{ fontFamily: "monospace", fontSize: 11 }}
+          />
+          <span style={{ fontSize: 9, color: "#94a3b8", marginTop: 3 }}>
+            Laisser vide pour comparer la valeur entière
+          </span>
+        </Field>
+      )}
+
+      {/* ── Opérateur (commun aux deux sources) ── */}
       <Field label="Opérateur">
         <Select value={config.operator||"eq"} onChange={v => set("operator", v)} options={[
-          { value: "eq",          label: "est égal à"       },
-          { value: "neq",         label: "est différent de" },
-          { value: "contains",    label: "contient"         },
-          { value: "not_contains",label: "ne contient pas"  },
-          { value: "gt",          label: "supérieur à"      },
-          { value: "lt",          label: "inférieur à"      },
-          { value: "is_empty",    label: "est vide"         },
-          { value: "is_not_empty",label: "n'est pas vide"   },
+          { value: "eq",           label: "est égal à"       },
+          { value: "neq",          label: "est différent de" },
+          { value: "contains",     label: "contient"         },
+          { value: "not_contains", label: "ne contient pas"  },
+          { value: "gt",           label: "supérieur à"      },
+          { value: "lt",           label: "inférieur à"      },
+          { value: "is_empty",     label: "est vide"         },
+          { value: "is_not_empty", label: "n'est pas vide"   },
+          { value: "is_true",      label: "est vrai"         },
+          { value: "is_false",     label: "est faux"         },
         ]}/>
       </Field>
 
-      {!["is_empty","is_not_empty"].includes(config.operator) && (
-        <Field label="Valeur">
-          <Input value={config.value||""} onChange={v => set("value", v)} placeholder="Valeur attendue"/>
+      {!["is_empty","is_not_empty","is_true","is_false"].includes(config.operator) && (
+        <Field label="Valeur attendue">
+          <Input value={config.value||""} onChange={v => set("value", v)} placeholder="Valeur de comparaison"/>
         </Field>
       )}
     </Section>
@@ -995,6 +1388,20 @@ function TagForm({ config, set }) {
 
 /* ── Webhook ─────────────────────────────────────────── */
 function WebhookForm({ config, set }) {
+  // Mappings réponse : [{ jsonPath, variable }]
+  const mappings = config.responseMappings || [];
+
+  function addMapping() {
+    set("responseMappings", [...mappings, { jsonPath: "", variable: "" }]);
+  }
+  function updateMapping(i, key, val) {
+    const updated = mappings.map((m, idx) => idx === i ? { ...m, [key]: val } : m);
+    set("responseMappings", updated);
+  }
+  function removeMapping(i) {
+    set("responseMappings", mappings.filter((_, idx) => idx !== i));
+  }
+
   return (<>
     <Section title="Requête" icon="🌐">
       <div style={{ display: "flex", gap: 8 }}>
@@ -1015,10 +1422,10 @@ function WebhookForm({ config, set }) {
     <Section title="Authentification" icon="🔐">
       <Field label="Type">
         <Select value={config.authType||"none"} onChange={v => set("authType", v)} options={[
-          { value: "none",   label: "🔓 Aucune"          },
-          { value: "bearer", label: "🔑 Bearer Token"    },
-          { value: "basic",  label: "👤 Basic Auth"      },
-          { value: "apikey", label: "🗝 API Key Header"  },
+          { value: "none",   label: "🔓 Aucune"         },
+          { value: "bearer", label: "🔑 Bearer Token"   },
+          { value: "basic",  label: "👤 Basic Auth"     },
+          { value: "apikey", label: "🗝 API Key Header" },
         ]}/>
       </Field>
       {config.authType === "bearer" && (
@@ -1054,14 +1461,106 @@ function WebhookForm({ config, set }) {
       />
     </Section>
 
-    <Section title="Options" icon="⚙️">
-      <Toggle label="Réessayer si erreur (3×)" checked={config.retry??true}        onChange={v => set("retry", v)}/>
-      <Toggle label="Attendre la réponse"       checked={config.waitResponse??false} onChange={v => set("waitResponse", v)}/>
-      {config.waitResponse && (
-        <Field label="Timeout (secondes)">
-          <Input type="number" value={config.timeout||30} min={1} max={120} onChange={v => set("timeout", +v)}/>
+    {/* ── Réponse ─────────────────────────────────── */}
+    <Section title="Réponse" icon="📥">
+      <Toggle
+        label="Attendre et lire la réponse"
+        checked={config.waitResponse??false}
+        onChange={v => set("waitResponse", v)}
+      />
+
+      {config.waitResponse && (<>
+        <Field label="Format attendu">
+          <Select value={config.responseFormat||"json"} onChange={v => set("responseFormat", v)} options={[
+            { value: "json", label: "JSON"       },
+            { value: "text", label: "Texte brut" },
+          ]}/>
         </Field>
-      )}
+
+        <Field label="Stocker la réponse brute dans">
+          <Input
+            value={config.responseVariable||""}
+            onChange={v => set("responseVariable", v)}
+            placeholder="ex: webhook_response"
+          />
+          <span style={{ fontSize: 9, color: "#94a3b8", marginTop: 3 }}>
+            Accessible via {"{{webhook_response}}"} dans les nodes suivants
+          </span>
+        </Field>
+
+        {/* Mappings JSON path → variable */}
+        {config.responseFormat === "json" && (<>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}>
+              Extraire des champs
+            </span>
+            <button onClick={addMapping} style={{
+              fontSize: 10, fontWeight: 700, color: "#6366f1",
+              background: "#eef2ff", border: "1px solid #c7d2fe",
+              borderRadius: 6, padding: "3px 10px", cursor: "pointer",
+            }}>
+              + Ajouter
+            </button>
+          </div>
+
+          {mappings.length === 0 && (
+            <span style={{ fontSize: 10, color: "#94a3b8", fontStyle: "italic" }}>
+              Aucun mapping — cliquez sur "+ Ajouter"
+            </span>
+          )}
+
+          {mappings.map((m, i) => (
+            <div key={i} style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <Input
+                value={m.jsonPath}
+                onChange={v => updateMapping(i, "jsonPath", v)}
+                placeholder="data.user.id"
+                style={{ flex: 1, fontFamily: "monospace", fontSize: 10 }}
+              />
+              <span style={{ fontSize: 11, color: "#94a3b8", flexShrink: 0 }}>→</span>
+              <Input
+                value={m.variable}
+                onChange={v => updateMapping(i, "variable", v)}
+                placeholder="user_id"
+                style={{ flex: 1 }}
+              />
+              <button onClick={() => removeMapping(i)} style={{
+                width: 22, height: 22, borderRadius: 5, flexShrink: 0,
+                border: "1px solid #fca5a5", background: "#fff1f2",
+                color: "#ef4444", cursor: "pointer", fontSize: 13,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>×</button>
+            </div>
+          ))}
+
+          {mappings.length > 0 && (
+            <InfoBox color="#6366f1">
+              Ex : chemin <code style={{ fontSize: 9 }}>data.user.id</code> → variable <code style={{ fontSize: 9 }}>{"{{user_id}}"}</code> utilisable dans les nodes suivants
+            </InfoBox>
+          )}
+        </>)}
+
+        <Field label="Condition de succès (code HTTP)">
+          <Select value={config.successCode||"2xx"} onChange={v => set("successCode", v)} options={[
+            { value: "2xx", label: "2xx (200–299) — recommandé" },
+            { value: "200", label: "200 exactement"             },
+            { value: "201", label: "201 exactement"             },
+          ]}/>
+        </Field>
+
+        <Field label="Timeout (secondes)">
+          <Input type="number" value={config.timeout||30} min={1} max={120}
+            onChange={v => set("timeout", +v)}/>
+        </Field>
+      </>)}
+    </Section>
+
+    <Section title="Options" icon="⚙️">
+      <Toggle
+        label="Réessayer si erreur (3×)"
+        checked={config.retry??true}
+        onChange={v => set("retry", v)}
+      />
     </Section>
   </>);
 }

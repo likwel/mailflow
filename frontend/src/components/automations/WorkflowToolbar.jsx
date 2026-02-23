@@ -66,7 +66,7 @@ export default function WorkflowToolbar({ workflow, saving, onSave, onToggle, on
           padding: "7px 16px", borderRadius: 8,
           background: running ? "#f1f5f9" : " #d6f3ea",
           color: running ? "#94a3b8" : "#10b981",
-          border: "none", cursor: running ? "not-allowed" : "pointer",
+          cursor: running ? "not-allowed" : "pointer",
           fontSize: 13, fontWeight: 700, transition: "all .15s",
           boxShadow :"rgba(99, 102, 241, 0.3) 0px 2px 6px",
           border : running ? "1px solid #94a3b8" : "1px solid #81e1c1",
@@ -94,6 +94,7 @@ const toolBtn = {
 const toolBtnFill = {
   display: "flex", alignItems: "center", gap: 6,
   padding: "7px 14px", borderRadius: 8,
-  border: "none", cursor: "pointer",
+  // border: "none", 
+  cursor: "pointer",
   fontSize: 13, fontWeight: 700, transition: "all .15s",
 };

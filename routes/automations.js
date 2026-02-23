@@ -2,6 +2,9 @@ const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const { authMiddleware } = require('../middleware/auth');
 
+const { startScheduledWorkflows, refreshSchedule } = require("../scheduler/workerschedule");
+const { sendEmail } = require('../utils/serviceEmail');
+
 const router = express.Router();
 const prisma = new PrismaClient();
 
@@ -67,20 +70,22 @@ router.post('/workflows', authMiddleware, async (req, res) => {
 
 // ── PUT mettre à jour un workflow ───────────────────
 router.put('/workflows/:id', authMiddleware, async (req, res) => {
+
   try {
     const { name, description, trigger, actions, nodes, edges, status } = req.body;
     const workflow = await prisma.workflow.update({
       where: { id: req.params.id, userId: req.user.id },
       data: {
-        ...(name        !== undefined && { name }),
+        ...(name !== undefined && { name }),
         ...(description !== undefined && { description }),
-        ...(trigger     !== undefined && { trigger }),
-        ...(actions     !== undefined && { actions }),
-        ...(nodes       !== undefined && { nodes }),
-        ...(edges       !== undefined && { edges }),
-        ...(status      !== undefined && { status }),
+        ...(trigger !== undefined && { trigger }),
+        ...(actions !== undefined && { actions }),
+        ...(nodes !== undefined && { nodes }),
+        ...(edges !== undefined && { edges }),
+        ...(status !== undefined && { status }),
       },
     });
+    refreshSchedule(workflow, prisma, runWorkflow);
     res.json(workflow);
   } catch (error) {
     res.status(500).json({ error: 'Failed to update workflow: ' + error.message });
@@ -97,6 +102,7 @@ router.patch('/workflows/:id/status', authMiddleware, async (req, res) => {
       where: { id: req.params.id, userId: req.user.id },
       data: { status },
     });
+    refreshSchedule(workflow, prisma, runWorkflow);
     res.json(workflow);
   } catch (error) {
     res.status(500).json({ error: 'Failed to update status: ' + error.message });
@@ -158,29 +164,68 @@ async function runWorkflow(workflow, executionId) {
   // Construire un index des edges pour navigation
   const edgeMap = buildEdgeMap(edges);
 
+  const user = await prisma.user.findUnique({ where: { id: workflow.userId } });
+
   // Trouver le nœud de départ (trigger ou premier sans parent)
-  const startNode = nodes.find(n => n.type === 'trigger' || n.type === 'schedule' || n.type === 'alarm')
-    || nodes[0];
+  const startNode =
+    nodes.find(n => ['trigger', 'schedule', 'alarm'].includes(n.type)) || nodes[0];
 
   if (!startNode) {
     await prisma.workflowExecution.update({
       where: { id: executionId },
-      data: { status: 'error', finishedAt: new Date(), error: 'Aucun nœud de départ trouvé' },
+      data: {
+        status: 'error',
+        finishedAt: new Date(),
+        error: 'Aucun nœud de départ trouvé',
+      },
     });
     return;
   }
 
+  // ── Contexte partagé entre tous les nœuds ──────────────────────────────────
+  // Chaque nœud peut y lire les résultats des nœuds précédents
+  // et y écrire ses propres sorties.
+  //
+  //  context["outputField"]   → clé définie dans node.config.outputField
+  //  context["node_<id>"]     → accès universel par ID de nœud
+  //
+  // Exemple d'accès dans executeNode() :
+  //   const prevResult = node.context?.ai_agent_result;
+  // ──────────────────────────────────────────────────────────────────────────
+  const context = {
+    workflowId: workflow.id,
+    executionId,
+    startedAt: new Date().toISOString(),
+    _user: user,
+  };
+
   try {
-    await traverseNodes(startNode.id, nodes, edgeMap, nodeStatuses, executionId);
+    await traverseNodes(
+      startNode.id,
+      nodes,
+      edgeMap,
+      nodeStatuses,
+      executionId,
+      context,       // ← transmis à chaque nœud
+    );
 
     await prisma.workflowExecution.update({
       where: { id: executionId },
-      data: { status: 'success', finishedAt: new Date(), nodeStatuses },
+      data: {
+        status: 'success',
+        finishedAt: new Date(),
+        nodeStatuses,
+      },
     });
   } catch (err) {
     await prisma.workflowExecution.update({
       where: { id: executionId },
-      data: { status: 'error', finishedAt: new Date(), nodeStatuses, error: err.message },
+      data: {
+        status: 'error',
+        finishedAt: new Date(),
+        nodeStatuses,
+        error: err.message,
+      },
     });
   }
 }
@@ -196,14 +241,16 @@ function buildEdgeMap(edges) {
 }
 
 // Traverse les nœuds de façon récursive en suivant les edges
-async function traverseNodes(nodeId, nodes, edgeMap, nodeStatuses, executionId, visited = new Set()) {
-  if (visited.has(nodeId)) return; // anti-boucle infinie
+async function traverseNodes(nodeId, nodes, edgeMap, nodeStatuses, executionId, context, visited = new Set()) {
+  if (visited.has(nodeId)) return;
   visited.add(nodeId);
 
   const node = nodes.find(n => n.id === nodeId);
   if (!node) return;
 
-  // Marquer running
+  // Attacher le contexte partagé au node AVANT executeNode
+  node.context = context;
+
   nodeStatuses[node.id] = 'running';
   await prisma.workflowExecution.update({
     where: { id: executionId },
@@ -214,6 +261,21 @@ async function traverseNodes(nodeId, nodes, edgeMap, nodeStatuses, executionId, 
   try {
     conditionResult = await executeNode(node);
     nodeStatuses[node.id] = 'success';
+
+    // ── Écrire le résultat dans le contexte partagé ──
+    // AVANT d'appeler les nodes suivants
+    if (conditionResult !== null && conditionResult !== undefined) {
+      const cfg = node.config || {};
+      const key = cfg.outputField        // ai_agent
+        || cfg.responseVariable          // webhook
+        || `${node.type}_result`;        // auto: "webhook_result", "ai_agent_result"…
+
+      context[key] = conditionResult; // accessible par nom de variable
+      context[`node_${node.id}`] = conditionResult; // accessible par ID node
+
+      console.log(`[context] "${node.type}" → context["${key}"] =`, JSON.stringify(conditionResult).slice(0, 100));
+    }
+
   } catch (err) {
     nodeStatuses[node.id] = 'error';
     await prisma.workflowExecution.update({
@@ -223,34 +285,28 @@ async function traverseNodes(nodeId, nodes, edgeMap, nodeStatuses, executionId, 
     throw err;
   }
 
-  // Marquer success
   await prisma.workflowExecution.update({
     where: { id: executionId },
     data: { nodeStatuses: { ...nodeStatuses } },
   });
 
-  // Nœud stop → ne pas continuer
   if (node.type === 'stop') return;
 
-  // Déterminer les nœuds suivants
   const nextEdges = edgeMap[node.id] || [];
-
   for (const edge of nextEdges) {
-    // Pour condition : suivre seulement la branche true ou false
     if (node.type === 'condition') {
       const shouldFollow = conditionResult === true ? 'true' : 'false';
       if (edge.handle !== shouldFollow && edge.handle !== 'default') continue;
     }
-    // Pour filter : si résultat false, arrêter
     if (node.type === 'filter' && conditionResult === false) continue;
-    // Pour split A/B : suivre la branche aléatoire
     if (node.type === 'split') {
       const splitA = node.config?.splitA ?? 50;
       const goA = Math.random() * 100 < splitA;
       if ((edge.handle === 'a' && !goA) || (edge.handle === 'b' && goA)) continue;
     }
 
-    await traverseNodes(edge.targetId, nodes, edgeMap, nodeStatuses, executionId, visited);
+    // Passer le même objet context → le node suivant voit tout
+    await traverseNodes(edge.targetId, nodes, edgeMap, nodeStatuses, executionId, context, visited);
   }
 }
 
@@ -265,6 +321,7 @@ async function executeNode(node) {
     // ── Déclencheurs (point de départ, pas d'action) ──
     case 'trigger':
     case 'schedule':
+      console.log(cfg)
     case 'alarm':
       return null;
 
@@ -283,9 +340,52 @@ async function executeNode(node) {
 
     // ── Email ───────────────────────────────────────────
     case 'email':
-      // Brancher ici sur votre service d'envoi (Nodemailer, SendGrid…)
-      console.log(`[email] Envoi template="${cfg.templateId}" sujet="${cfg.subject}"`);
-      return null;
+      {
+        try {
+
+          // ── Résoudre les destinataires depuis config.recipients ─────────────────
+          // recipients = [{ type: "list"|"contact", id, label }]
+          const toAddresses = [];
+
+          for (const r of cfg.recipients || []) {
+            if (r.type === "list") {
+              // Récupérer tous les contacts de la liste
+              const listContacts = await prisma.contactListMember.findMany({
+                where: { listId: r.id },
+                include: { contact: { select: { email: true } } },
+              });
+              listContacts.forEach(m => { if (m.contact?.email) toAddresses.push(m.contact.email); });
+
+            } else if (r.type === "contact") {
+              const contact = await prisma.contact.findUnique({
+                where: { id: r.id },
+                select: { email: true },
+              });
+              if (contact?.email) toAddresses.push(contact.email);
+            }
+          }
+
+          if (toAddresses.length === 0) throw new Error("Aucun destinataire résolu pour le nœud email");
+
+          // ── Appel fonction réutilisable ──────────────────────────────────────────
+          const result = await sendEmail({
+            user: node.context._user,   // user attaché au contexte d'exécution
+            to: toAddresses,
+            templateId: cfg.templateId || undefined,
+            subject: cfg.subject || undefined,
+            fromName: cfg.fromName || undefined,
+            fromEmail: cfg.fromEmail || undefined,
+            variables: cfg.variables || undefined,
+            attachments: cfg.attachments || [],   // [{ filename, path?, content?, contentType? }]
+          });
+
+          return result; // { success, sent, logs }
+          
+        } catch (error) {
+          console.log(error)
+        }
+
+      }
 
     // ── SMS ─────────────────────────────────────────────
     case 'sms':
@@ -322,17 +422,81 @@ async function executeNode(node) {
     // ── Condition (retourne true/false) ──────────────────
     case 'condition':
     case 'filter':
-      return evaluateCondition(cfg);
+      return evaluateCondition(cfg, node.context || {});
 
     // ── Split A/B (logique gérée dans traverseNodes) ─────
     case 'split':
       return null;
 
     // ── Boucle ────────────────────────────────────────────
-    case 'loop':
-      // La logique de boucle complète nécessite un contexte contact
-      console.log(`[loop] source="${cfg.source}"`);
-      return null;
+    case 'loop': {
+      const ctx = node.context || {};
+
+      // ── Résoudre la liste selon la source ───────────────────────────────────
+      let list = [];
+
+      if (cfg.source === "variable" || cfg.source === "webhook") {
+        const raw = ctx[cfg.variableName];
+        let parsed = raw;
+        if (typeof raw === "string") {
+          try { parsed = JSON.parse(raw); } catch { parsed = []; }
+        }
+        list = cfg.jsonPath ? resolveJsonPath(parsed, cfg.jsonPath) : parsed;
+
+      } else if (cfg.source === "contacts") {
+        const members = await prisma.contactListMember.findMany({
+          where:   { listId: cfg.listId },
+          include: { contact: true },
+        });
+        list = members.map(m => m.contact);
+
+      } else if (cfg.source === "tags") {
+        const tagged = await prisma.contactTag.findMany({
+          where:   { tag: cfg.tag },
+          include: { contact: true },
+        });
+        list = tagged.map(t => t.contact);
+
+      } else if (cfg.source === "static") {
+        try { list = JSON.parse(cfg.staticData || "[]"); } catch { list = []; }
+      }
+
+      if (!Array.isArray(list)) list = [];
+
+      // ── Condition d'exécution ────────────────────────────────────────────────
+      if (cfg.skipIfEmpty !== false && list.length === 0) {
+        console.log(`[loop] liste vide → court-circuit`);
+        return { iterated: 0, skipped: true };
+      }
+
+      const maxIter = cfg.maxIterations > 0 ? cfg.maxIterations : list.length;
+      const iterVar = cfg.iteratorVar || "item";
+      const indexVar = cfg.indexVar   || "index";
+      const delayMs  = (cfg.iterDelay || 0) * ({ second: 1000, minute: 60_000, hour: 3_600_000 }[cfg.iterUnit] || 1000);
+
+      console.log(`[loop] source="${cfg.source}" items=${list.length} max=${maxIter}`);
+
+      // ── Boucle ───────────────────────────────────────────────────────────────
+      let iterated = 0;
+      for (let i = 0; i < Math.min(list.length, maxIter); i++) {
+        const item = list[i];
+
+        // Injecter l'item courant dans le contexte partagé
+        ctx[iterVar] = item;
+        if (cfg.exposeIndex) ctx[indexVar] = i;
+
+        console.log(`[loop] itération ${i + 1}/${Math.min(list.length, maxIter)}`, item);
+
+        // Délai entre itérations (sauf la première)
+        if (i > 0 && delayMs > 0) {
+          await new Promise(r => setTimeout(r, delayMs));
+        }
+
+        iterated++;
+      }
+
+      return { iterated, total: list.length };
+    }
 
     // ── Arrêt ─────────────────────────────────────────────
     case 'stop':
@@ -369,21 +533,82 @@ async function executeNode(node) {
     // ── Webhook ───────────────────────────────────────────
     case 'webhook': {
       if (!cfg.url) return null;
-      const headers = { 'Content-Type': 'application/json' };
-      if (cfg.authType === 'bearer' && cfg.token)
-        headers['Authorization'] = `Bearer ${cfg.token}`;
-      if (cfg.authType === 'apikey' && cfg.apiKeyHeader)
-        headers[cfg.apiKeyHeader] = cfg.apiKeyValue || '';
-      if (cfg.authType === 'basic' && cfg.basicUser)
-        headers['Authorization'] = 'Basic ' + Buffer.from(`${cfg.basicUser}:${cfg.basicPass}`).toString('base64');
+      try {
+        // ── Headers ────────────────────────────────────────
+        const headers = { 'Content-Type': 'application/json' };
+        if (cfg.authType === 'bearer' && cfg.token)
+          headers['Authorization'] = `Bearer ${cfg.token}`;
+        if (cfg.authType === 'apikey' && cfg.apiKeyHeader)
+          headers[cfg.apiKeyHeader] = cfg.apiKeyValue || '';
+        if (cfg.authType === 'basic' && cfg.basicUser)
+          headers['Authorization'] = 'Basic ' +
+            Buffer.from(`${cfg.basicUser}:${cfg.basicPass}`).toString('base64');
 
-      const res = await fetch(cfg.url, {
-        method: cfg.method || 'POST',
-        headers,
-        body: ['GET'].includes(cfg.method) ? undefined : (cfg.body || JSON.stringify({ nodeId: node.id })),
-      });
-      if (!res.ok && cfg.retry) throw new Error(`Webhook HTTP ${res.status}`);
-      return null;
+        // ── Requête ────────────────────────────────────────
+        const controller = new AbortController();
+        const timer = cfg.waitResponse
+          ? setTimeout(() => controller.abort(), Math.max((cfg.timeout || 30), 15) * 1000)
+          : null;
+
+        const res = await fetch(cfg.url, {
+          method: cfg.method || 'POST',
+          headers,
+          signal: controller.signal,
+          body: ['GET'].includes(cfg.method)
+            ? undefined
+            : interpolateVariables(cfg.body || '{}', node.context || {}),
+        });
+
+        if (timer) clearTimeout(timer);
+
+        // ── Vérifier le code de succès ─────────────────────
+        const isSuccess = cfg.successCode === '200' ? res.status === 200
+          : cfg.successCode === '201' ? res.status === 201
+            : res.status >= 200 && res.status < 300;
+
+        if (!isSuccess && cfg.retry)
+          throw new Error(`Webhook HTTP ${res.status}`);
+
+        // ── Lire la réponse si demandé ─────────────────────
+        if (!cfg.waitResponse) return null;
+
+        let responseData = null;
+
+        if (cfg.responseFormat === 'json') {
+          try {
+            responseData = await res.json();
+          } catch {
+            responseData = null;
+          }
+        } else {
+          responseData = await res.text();
+        }
+
+        // Stocker la réponse brute dans le contexte
+        if (cfg.responseVariable && node.context) {
+          node.context[cfg.responseVariable] = responseData;
+        }
+
+        // ── Mapper les champs JSON → variables ─────────────
+        if (cfg.responseFormat === 'json' && responseData && cfg.responseMappings?.length) {
+          for (const { jsonPath, variable } of cfg.responseMappings) {
+            if (!jsonPath || !variable) continue;
+
+            // Résoudre le chemin ex: "data.user.id"
+            const value = jsonPath.split('.').reduce((obj, key) => obj?.[key], responseData);
+
+            if (value !== undefined && node.context) {
+              node.context[variable] = value;
+              console.log(`[webhook] Mapping: ${jsonPath} → ${variable} = ${JSON.stringify(value)}`);
+            }
+          }
+        }
+
+        return responseData;
+
+      } catch (error) {
+        console.log(error)
+      }
     }
 
     // ── Base de données ───────────────────────────────────
@@ -416,33 +641,33 @@ async function executeNode(node) {
       if (!cfg.prompt) return null;
 
       const provider = cfg.provider || 'anthropic';
-      const prompt   = interpolateVariables(cfg.prompt, node.context || {});
-      const system   = cfg.systemPrompt ? interpolateVariables(cfg.systemPrompt, node.context || {}) : null;
+      const prompt = interpolateVariables(cfg.prompt, node.context || {});
+      const system = cfg.systemPrompt ? interpolateVariables(cfg.systemPrompt, node.context || {}) : null;
 
       let result = null;
 
       if (provider === 'anthropic') {
         result = await callAnthropic({
-          model:       cfg.model || 'claude-sonnet-4-20250514',
+          model: cfg.model || 'claude-sonnet-4-20250514',
           prompt,
           system,
-          maxTokens:   cfg.maxTokens || 500,
+          maxTokens: cfg.maxTokens || 500,
           temperature: cfg.temperature ?? 0.7,
         });
       } else if (provider === 'openai') {
         result = await callOpenAI({
-          model:       cfg.model || 'gpt-4o',
+          model: cfg.model || 'gpt-4o',
           prompt,
           system,
-          maxTokens:   cfg.maxTokens || 500,
+          maxTokens: cfg.maxTokens || 500,
           temperature: cfg.temperature ?? 0.7,
         });
       } else if (provider === 'mistral') {
         result = await callMistral({
-          model:       cfg.model || 'mistral-large-latest',
+          model: cfg.model || 'mistral-large-latest',
           prompt,
           system,
-          maxTokens:   cfg.maxTokens || 500,
+          maxTokens: cfg.maxTokens || 500,
           temperature: cfg.temperature ?? 0.7,
         });
       }
@@ -474,26 +699,68 @@ async function executeNode(node) {
 /* ════════════════════════════════════════════════════
    HELPER — Évaluation de condition
 ════════════════════════════════════════════════════ */
-function evaluateCondition(cfg) {
-  // Sans contexte contact réel, retourne true par défaut en dev
-  // En production, passer le contact en paramètre et évaluer cfg.field/operator/value
-  const { field, operator, value } = cfg;
-  if (!field || !operator) return true;
+function evaluateCondition(cfg, context = {}) {
+  const { source, field, operator, value } = cfg;
 
-  // Exemple avec valeur statique
-  const actual = cfg.testValue ?? value; // remplacer par contact[field] en prod
-  switch (operator) {
-    case 'eq':          return actual == value;
-    case 'neq':         return actual != value;
-    case 'contains':    return String(actual).includes(value);
-    case 'not_contains':return !String(actual).includes(value);
-    case 'gt':          return Number(actual) > Number(value);
-    case 'lt':          return Number(actual) < Number(value);
-    case 'is_empty':    return !actual || actual === '';
-    case 'is_not_empty':return !!actual && actual !== '';
-    default:            return true;
+  let actual;
+
+  if (source === "variable") {
+    actual = context[cfg.variableName];
+
+    // ── Parser si c'est une string JSON ──────────────
+    if (typeof actual === "string") {
+      try { actual = JSON.parse(actual); } catch { /* laisser tel quel */ }
+    }
+
+    // ── Naviguer dans l'objet si jsonPath défini ─────
+    if (actual !== undefined && cfg.jsonPath) {
+      actual = resolveJsonPath(actual, cfg.jsonPath);
+    }
+
+  } else {
+    const contact = context.contact || {};
+    actual = field === "custom_field"
+      ? contact[cfg.customFieldKey] ?? null
+      : contact[field] ?? null;
+
+  }
+
+  const result = applyOperator(actual, operator, value);
+  return result;
+}
+
+// Résoudre un chemin JSON : "data.user.id" ou "items[0].name"
+function resolveJsonPath(obj, path) {
+  try {
+    // Convertir "items[0].name" → ["items", "0", "name"]
+    const keys = path
+      .replace(/\[(\d+)\]/g, '.$1') // items[0] → items.0
+      .split('.')
+      .filter(Boolean);
+
+    return keys.reduce((cur, key) => cur?.[key], obj);
+  } catch {
+    return undefined;
   }
 }
+
+// Appliquer l'opérateur de comparaison
+function applyOperator(actual, operator, expected) {
+  switch (operator) {
+    case 'eq': return String(actual) === String(expected);
+    case 'neq': return String(actual) !== String(expected);
+    case 'contains': return String(actual).toLowerCase().includes(String(expected).toLowerCase());
+    case 'not_contains': return !String(actual).toLowerCase().includes(String(expected).toLowerCase());
+    case 'gt': return Number(actual) > Number(expected);
+    case 'lt': return Number(actual) < Number(expected);
+    case 'is_empty': return actual === null || actual === undefined || actual === '';
+    case 'is_not_empty': return actual !== null && actual !== undefined && actual !== '';
+    case 'is_true': return actual === true || actual === 'true' || actual === 1;
+    case 'is_false': return actual === false || actual === 'false' || actual === 0;
+    default: return true;
+  }
+}
+
 
 /* ════════════════════════════════════════════════════
    Fonctions d'appel aux providers — à ajouter en bas
@@ -513,8 +780,8 @@ async function callAnthropic({ model, prompt, system, maxTokens, temperature }) 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
-      'Content-Type':      'application/json',
-      'x-api-key':         apiKey,
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify(body),
@@ -536,7 +803,7 @@ async function callOpenAI({ model, prompt, system, maxTokens, temperature }) {
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Content-Type':  'application/json',
+      'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify({ model, messages, max_tokens: maxTokens, temperature }),
@@ -558,7 +825,7 @@ async function callMistral({ model, prompt, system, maxTokens, temperature }) {
   const res = await fetch('https://api.mistral.ai/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Content-Type':  'application/json',
+      'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify({ model, messages, max_tokens: maxTokens, temperature }),
