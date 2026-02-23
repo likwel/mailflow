@@ -60,7 +60,7 @@ function VariablesPanel1({ variables, values, onChange, onImport }) {
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 16px", background:"#f8fafc", borderBottom:`1px solid ${T.border}` }}>
         <div style={{ display:"flex", alignItems:"center", gap:8 }}>
           <Zap size={16} color={T.primary}/>
-          <span style={{ fontWeight:600, fontSize:14, color:T.text }}>Variables détectées ({variables.length})</span>
+          <span style={{ fontWeight:600, fontSize:14, color:T.text }}>Variables utilisées ({variables.length})</span>
         </div>
         <button onClick={()=>fileRef.current?.click()}
           style={{ display:"flex", alignItems:"center", gap:6, padding:"6px 12px", background:"#fff", border:`1px solid ${T.border}`, borderRadius:8, cursor:"pointer", fontSize:13, color:T.text, fontWeight:500 }}>

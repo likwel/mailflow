@@ -21,11 +21,15 @@ export default function WorkflowToolbar({ workflow, saving, onSave, onToggle, on
       <div style={{ width: 1, height: 24, background: "#e2e8f0" }}/>
 
       {/* Nom + statut */}
-      <div style={{ flex: 1 }}>
-        <span style={{ fontWeight: 700, fontSize: 15, color: "#1e293b" }}>
+      <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <span style={{
+          fontWeight: 700, fontSize: 15, color: "#1e293b",
+          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+        }}>
           {workflow?.name || "Nouveau workflow"}
         </span>
         <span style={{
+          flexShrink: 0,
           marginLeft: 10, padding: "2px 9px", borderRadius: 99,
           fontSize: 11, fontWeight: 700,
           background: isActive ? "#d1fae5" : "#f1f5f9",

@@ -6,7 +6,7 @@ import { T, styles } from "../theme";
 import { useNavigate } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 
-const LINKS = ["Home", "Docs", "Pricing"];
+const LINKS = ["Home", "Tarifs", "Docs"];
 
 export default function Navbar({ active, setActive }) {
   const navigate = useNavigate();

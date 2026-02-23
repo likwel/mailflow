@@ -83,7 +83,7 @@ export default function TemplatePreviewModal({ previewData, onClose }) {
               background:"#eff6ff", border:`1px solid ${T.primary}20`,
             }}>
               <p style={{ margin:"0 0 8px", fontSize:12, fontWeight:600, color:T.primary }}>
-                Variables détectées
+                Variables utilisées
               </p>
               <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
                 {variables.map((v, i) => (

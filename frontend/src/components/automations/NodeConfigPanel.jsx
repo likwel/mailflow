@@ -1,6 +1,6 @@
 // src/components/automations/NodeConfigPanel.jsx
 // Panel latéral droit qui s'ouvre quand on clique un node — style n8n
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import client from "../../api/client";
 
 // ── Imports à ajouter ──────────────────────────────────────────────────────
@@ -11,6 +11,7 @@ import {
   Phone, Send, Database, Filter, Shuffle, Copy,
   AlarmClock, Calendar, ThumbsUp, Archive, Trash2 as TrashIcon, X, ChevronDown, Info, Bot 
 } from "lucide-react";
+import { Users,  Variable, User, Link } from "lucide-react";
 
 
 // ── NODE_META ───────────────────────────────────────────────────────────────
@@ -182,7 +183,7 @@ export default function NodeConfigPanel({ node, onClose, onChange, onDelete }) {
         {/* ── Contenu scrollable ── */}
         <div style={{ flex: 1, overflowY: "auto", padding: 20 }}>
           {tab === "config" && (
-            <NodeConfigForm type={node.data.type} config={config} set={set}/>
+            <NodeConfigForm type={node.data.type} config={config} set={set} execContext={node?.data?.execContext || {}}/>
           )}
           {tab === "notes" && (
             <div>
@@ -293,7 +294,6 @@ function NodeConfigForm({ type, config, set }) {
     </div>
   );
 }
-
 
 /* ══════════════════════════════════════════════════════
    DÉCLENCHEURS
@@ -767,30 +767,219 @@ function UnsubscribeForm({ config, set }) {
 ══════════════════════════════════════════════════════ */
 
 function DatabaseForm({ config, set }) {
+  const isNoSQL       = ["mongodb"].includes(config.dbType);
+  const isMongo       = config.dbType === "mongodb";
+  const isGoogleSheet = config.dbType === "googlesheets";
+
   return (<>
-    <Section title="Base de données" icon="🗄️">
-      <Field label="Opération">
-        <Select value={config.operation||"read"} onChange={v => set("operation", v)} options={[
-          { value: "read",   label: "📖 Lire"      },
-          { value: "write",  label: "✏️ Écrire"    },
-          { value: "delete", label: "🗑️ Supprimer" },
+    {/* ── CONNEXION ─────────────────────────────────────────────────────── */}
+    <Section title="Connexion" icon="🔌">
+      <Field label="Type de base de données">
+        <Select value={config.dbType || "postgresql"} onChange={v => set("dbType", v)} options={[
+          { value: "postgresql",   label: "🐘 PostgreSQL" },
+          { value: "mysql",        label: "🐬 MySQL / MariaDB" },
+          { value: "mongodb",      label: "🍃 MongoDB" },
+          { value: "sqlite",       label: "📁 SQLite" },
+          { value: "mssql",        label: "🪟 SQL Server" },
+          { value: "googlesheets", label: "📊 Google Sheets (public)" },
         ]}/>
       </Field>
-      <Field label="Table / Collection">
-        <Input value={config.table||""} onChange={v => set("table", v)} placeholder="nom_table"/>
+
+      <Field label="Mode de connexion">
+        <Select value={config.connMode || "url"} onChange={v => set("connMode", v)} options={[
+          { value: "url",    label: "🔗 URL de connexion" },
+          { value: "manual", label: "⚙️ Paramètres manuels" },
+        ]}/>
       </Field>
-      <Field label="Filtre (JSON)">
-        <textarea value={config.filter||""} onChange={e => set("filter", e.target.value)}
-          placeholder={'{ "id": "{{contact.id}}" }'}
-          rows={3} style={{ ...inputStyle, fontFamily: "monospace", fontSize: 11, resize: "vertical" }}/>
+
+      {/* ── Google Sheets ───────────────────────────────── */}
+      {isGoogleSheet ? (<>
+        <Field label="URL du Google Sheet">
+          <Input
+            value={config.sheetUrl || ""}
+            onChange={v => set("sheetUrl", v)}
+            placeholder="https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/edit"
+          />
+          <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 3 }}>
+            Le sheet doit être partagé en <b>lecture publique</b>
+          </div>
+        </Field>
+        <Field label="Nom de l'onglet (optionnel)">
+          <Input
+            value={config.sheetName || ""}
+            onChange={v => set("sheetName", v)}
+            placeholder="Feuille1"
+          />
+        </Field>
+        <Field label="Plage de cellules (optionnel)">
+          <Input
+            value={config.sheetRange || ""}
+            onChange={v => set("sheetRange", v)}
+            placeholder="A1:Z1000"
+          />
+        </Field>
+        <Field label="Clé API Google">
+          <Input
+            value={config.googleApiKey || ""}
+            onChange={v => set("googleApiKey", v)}
+            placeholder="AIzaSy..."
+            type="password"
+          />
+          <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 3 }}>
+            Créer une clé sur <b>console.cloud.google.com</b> → APIs → Google Sheets API
+          </div>
+        </Field>
+        <Field label="Première ligne = en-têtes">
+          <Toggle
+            label="La 1ère ligne contient les noms de colonnes"
+            checked={config.firstRowHeader ?? true}
+            onChange={v => set("firstRowHeader", v)}
+          />
+        </Field>
+      </>) : config.connMode === "url" || !config.connMode ? (
+        <Field label="URL de connexion">
+          <Input
+            value={config.connectionUrl || ""}
+            onChange={v => set("connectionUrl", v)}
+            placeholder={
+              isMongo
+                ? "mongodb://user:pass@host:27017/dbname"
+                : config.dbType === "sqlite"
+                ? "file:./data.db"
+                : "postgresql://user:pass@host:5432/dbname"
+            }
+          />
+        </Field>
+      ) : (<>
+        <Field label="Hôte">
+          <Input value={config.host || ""} onChange={v => set("host", v)} placeholder="localhost"/>
+        </Field>
+        <Field label="Port">
+          <Input
+            type="number"
+            value={config.port || { postgresql: 5432, mysql: 3306, mongodb: 27017, mssql: 1433 }[config.dbType] || 5432}
+            onChange={v => set("port", +v)}
+          />
+        </Field>
+        <Field label="Base de données">
+          <Input value={config.database || ""} onChange={v => set("database", v)} placeholder="ma_base"/>
+        </Field>
+        <Field label="Utilisateur">
+          <Input value={config.user || ""} onChange={v => set("user", v)} placeholder="root"/>
+        </Field>
+        <Field label="Mot de passe">
+          <Input value={config.password || ""} onChange={v => set("password", v)} type="password" placeholder="••••••••"/>
+        </Field>
+        {isMongo && (
+          <Field label="Auth Source">
+            <Input value={config.authSource || "admin"} onChange={v => set("authSource", v)} placeholder="admin"/>
+          </Field>
+        )}
+        <Toggle
+          label="SSL / TLS"
+          checked={config.ssl ?? false}
+          onChange={v => set("ssl", v)}
+        />
+      </>)}
+    </Section>
+
+    {/* ── OPÉRATION ─────────────────────────────────────────────────────── */}
+    <Section title="Opération" icon="🗄️">
+      <Field label="Opération">
+        <Select value={config.operation || "read"} onChange={v => set("operation", v)} options={[
+          { value: "read",      label: "📖 Lire"          },
+          { value: "readMany",  label: "📚 Lire plusieurs" },
+          { value: "write",     label: "✏️ Écrire / Upsert" },
+          { value: "update",    label: "🔄 Mettre à jour"  },
+          { value: "delete",    label: "🗑️ Supprimer"      },
+          { value: "raw",       label: "⚡ Requête brute"  },
+        ]}/>
       </Field>
-      {config.operation === "write" && (
-        <Field label="Données (JSON)">
-          <textarea value={config.data||""} onChange={e => set("data", e.target.value)}
-            placeholder={'{ "score": 100 }'}
-            rows={3} style={{ ...inputStyle, fontFamily: "monospace", fontSize: 11, resize: "vertical" }}/>
+
+      {config.operation !== "raw" && (
+        <Field label={isMongo ? "Collection" : "Table"}>
+          <Input
+            value={config.table || ""}
+            onChange={v => set("table", v)}
+            placeholder={isMongo ? "ma_collection" : "nom_table"}
+          />
         </Field>
       )}
+
+      {/* Filtre / WHERE */}
+      {["read", "readMany", "update", "delete"].includes(config.operation) && (
+        <Field label={isMongo ? "Filtre (JSON)" : "WHERE (JSON)"}>
+          <textarea
+            value={config.filter || ""}
+            onChange={e => set("filter", e.target.value)}
+            placeholder={isMongo
+              ? '{ "status": "active" }'
+              : '{ "id": "{{contact.id}}" }'
+            }
+            rows={3}
+            style={{ ...inputStyle, fontFamily: "monospace", fontSize: 11, resize: "vertical" }}
+          />
+        </Field>
+      )}
+
+      {/* Données (write / update) */}
+      {["write", "update"].includes(config.operation) && (
+        <Field label="Données (JSON)">
+          <textarea
+            value={config.data || ""}
+            onChange={e => set("data", e.target.value)}
+            placeholder={'{ "score": 100, "name": "{{item.name}}" }'}
+            rows={3}
+            style={{ ...inputStyle, fontFamily: "monospace", fontSize: 11, resize: "vertical" }}
+          />
+        </Field>
+      )}
+
+      {/* Requête brute */}
+      {config.operation === "raw" && (
+        <Field label={isMongo ? "Pipeline (JSON array)" : "Requête SQL"}>
+          <textarea
+            value={config.rawQuery || ""}
+            onChange={e => set("rawQuery", e.target.value)}
+            placeholder={isMongo
+              ? '[{ "$match": { "status": "active" } }, { "$limit": 10 }]'
+              : "SELECT * FROM users WHERE status = 'active' LIMIT 10"
+            }
+            rows={5}
+            style={{ ...inputStyle, fontFamily: "monospace", fontSize: 11, resize: "vertical" }}
+          />
+        </Field>
+      )}
+
+      {/* Limite pour readMany */}
+      {config.operation === "readMany" && (
+        <Field label="Limite de résultats">
+          <Input
+            type="number" min={1} max={1000}
+            value={config.limit || 100}
+            onChange={v => set("limit", +v)}
+          />
+        </Field>
+      )}
+    </Section>
+
+    {/* ── SORTIE ────────────────────────────────────────────────────────── */}
+    <Section title="Sortie" icon="📤">
+      <Field label="Variable de résultat">
+        <Input
+          value={config.outputVariable || "db_result"}
+          onChange={v => set("outputVariable", v)}
+          placeholder="db_result"
+        />
+        <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 3 }}>
+          Accessible dans les nœuds suivants via <code>{"{{db_result}}"}</code>
+        </div>
+      </Field>
+      <Toggle
+        label="Continuer si aucun résultat"
+        checked={config.continueOnEmpty ?? true}
+        onChange={v => set("continueOnEmpty", v)}
+      />
     </Section>
   </>);
 }
@@ -900,16 +1089,28 @@ function TriggerForm({ config, set }) {
 
 /* ── Email ───────────────────────────────────────────── */
 
-function EmailForm({ config, set }) {
-  // requires: import client from "../../api/client";
+
+
+function EmailForm({ config, set, execContext = {} }) {
   const [templates,    setTemplates]    = useState([]);
   const [lists,        setLists]        = useState([]);
-  const [contacts,     setContacts]     = useState([]);
-  const [search,       setSearch]       = useState("");
+  const [tags,         setTags]         = useState([]);
   const [loadingTpl,   setLoadingTpl]   = useState(false);
   const [loadingRecip, setLoadingRecip] = useState(false);
 
-  // ── Chargement initial : templates + listes + segments ──────────────────
+  // ── Variables du nœud précédent ─────────────────────────────────────────
+  // Toutes les clés disponibles dans le contexte (hors métadonnées)
+  const ctxVars = Object.entries(execContext)
+    .filter(([k]) => !["workflowId","executionId","startedAt","_user"].includes(k))
+    .map(([k, v]) => ({
+      key: k,
+      preview: typeof v === "string" ? v.slice(0, 60) : JSON.stringify(v).slice(0, 60),
+    }));
+
+  // Dernière variable disponible (ex: db_result, response, webhook_result…)
+  const lastVar = ctxVars[ctxVars.length - 1] || null;
+
+  // ── Chargement initial ───────────────────────────────────────────────────
   useEffect(() => {
     setLoadingTpl(true);
     client.get("/dashboard/templates")
@@ -921,39 +1122,34 @@ function EmailForm({ config, set }) {
       .finally(() => setLoadingTpl(false));
 
     setLoadingRecip(true);
-    client.get("/contact-lists")
-      .then(r => {
+    Promise.all([
+      client.get("/contact-lists").then(r => {
         const d = r.data;
-        const arr = Array.isArray(d)       ? d
-          : Array.isArray(d?.lists)        ? d.lists
-          : Array.isArray(d?.data)         ? d.data
-          : [];
-        setLists(arr);
-      })
-      .catch(() => setLists([]))
+        return Array.isArray(d) ? d : Array.isArray(d?.lists) ? d.lists : Array.isArray(d?.data) ? d.data : [];
+      }).catch(() => []),
+      client.get("/contacts/tags").then(r => r.data || []).catch(() => []),
+    ]).then(([l, t]) => { setLists(l); setTags(t); })
       .finally(() => setLoadingRecip(false));
   }, []);
-  
-  // ── Recherche de contacts (debounce 400ms) ───────────────────────────────
-  useEffect(() => {
-    if (!search.trim()) { setContacts([]); return; }
-    const t = setTimeout(() =>
-      client.get(`/contacts?search=${encodeURIComponent(search)}&limit=20`)
-        .then(r => setContacts(r.data || []))
-        .catch(() => {}),
-    400);
-    return () => clearTimeout(t);
-  }, [search]);
 
-  // ── Template sélectionné → pré-remplir le sujet ──────────────────────────
-  const selectedTpl = templates.find(t => t.id === config.templateId);
+  // ── Template sélectionné ─────────────────────────────────────────────────
+  const selectedTpl = templates.find(t => t.id === config.templateId) || null;
+
+  // ── Variables utilisées dans le template {{variable}} ───────────────────
+  const tplVars = useMemo(() => {
+    if (!selectedTpl) return [];
+    const html    = selectedTpl.htmlBody || selectedTpl.html || "";
+    const subject = selectedTpl.subject  || "";
+    return [...new Set([...(html + subject).matchAll(/{{(\w+)}}/g)].map(m => m[1]))];
+  }, [selectedTpl]);
+
   const handleTemplateChange = id => {
     set("templateId", id);
     const tpl = templates.find(t => t.id === id);
     if (tpl?.subject && !config.subject) set("subject", tpl.subject);
   };
 
-  // ── Destinataires : tableau mixte [{type, id, label}] ────────────────────
+  // ── Destinataires ────────────────────────────────────────────────────────
   const recipients = config.recipients || [];
   const addRecipient = (type, id, label) => {
     if (recipients.find(r => r.type === type && r.id === id)) return;
@@ -979,45 +1175,76 @@ function EmailForm({ config, set }) {
         }
       </Field>
 
-      {/* Aperçu du template sélectionné */}
       {selectedTpl && (
-        <div style={{
-          marginTop: 6, padding: "8px 10px", borderRadius: 6,
-          background: "#f8fafc", border: "1px solid #e2e8f0", fontSize: 11,
-        }}>
-          <div style={{ color: "#64748b" }}>
-            <b>Sujet :</b> {selectedTpl.subject}
-          </div>
-          {selectedTpl.html && (
+        <div style={{ marginTop: 6, padding: "8px 10px", borderRadius: 6, background: "#f8fafc", border: "1px solid #e2e8f0", fontSize: 11 }}>
+          <div style={{ color: "#64748b" }}><b>Sujet :</b> {selectedTpl.subject}</div>
+          {(selectedTpl.htmlBody || selectedTpl.html) && (
             <div style={{ color: "#94a3b8", marginTop: 3 }}>
-              <b>Aperçu :</b>{" "}
-              {selectedTpl.html.replace(/<[^>]*>/g, "").slice(0, 80)}…
+              <b>Aperçu :</b> {(selectedTpl.htmlBody || selectedTpl.html || "").replace(/<[^>]*>/g, "").slice(0, 80)}…
             </div>
           )}
         </div>
       )}
 
       <Field label="Sujet *">
-        <Input
-          value={config.subject || ""}
-          onChange={v => set("subject", v)}
-          placeholder="Objet de l'email"
-        />
+        <Input value={config.subject || ""} onChange={v => set("subject", v)} placeholder="Objet de l'email"/>
       </Field>
+
+      {/* ── Mapping variables template ────────────────────────────────── */}
+      {tplVars.length > 0 && (
+        <div style={{ marginTop: 8, padding: "8px 10px", borderRadius: 6, background: "#faf5ff", border: "1px solid #e9d5ff" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#7c3aed", marginBottom: 6 }}>
+            🔗 Variables du template
+          </div>
+          {tplVars.map(v => (
+            <div key={v} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
+              <span style={{ fontSize: 10, fontFamily: "monospace", background: "#ede9fe", color: "#6d28d9", padding: "2px 6px", borderRadius: 4, flexShrink: 0 }}>
+                {`{{${v}}}`}
+              </span>
+              <span style={{ fontSize: 10, color: "#94a3b8", flexShrink: 0 }}>←</span>
+              <select
+                value={(config.variables || {})[v] || ""}
+                onChange={e => set("variables", { ...(config.variables || {}), [v]: e.target.value })}
+                style={{ flex: 1, fontSize: 11, padding: "3px 6px", borderRadius: 4, border: "1px solid #e2e8f0", color: "#374151", background: "#fff" }}
+              >
+                <option value="">— valeur fixe —</option>
+                {ctxVars.length > 0 && (
+                  <optgroup label="Nœud précédent">
+                    {ctxVars.map(c => (
+                      <option key={c.key} value={`{{${c.key}}}`}>{`{{${c.key}}}`}</option>
+                    ))}
+                  </optgroup>
+                )}
+              </select>
+              {!(config.variables || {})[v] && (
+                <input
+                  value={(config.variablesFixed || {})[v] || ""}
+                  onChange={e => set("variablesFixed", { ...(config.variablesFixed || {}), [v]: e.target.value })}
+                  placeholder="valeur fixe…"
+                  style={{ width: 80, fontSize: 10, padding: "3px 6px", borderRadius: 4, border: "1px solid #e2e8f0" }}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </Section>
 
     {/* ── DESTINATAIRES ─────────────────────────────────────────────────── */}
     <Section title="Destinataires" icon="👥">
-      <RecipientTabs
-        active={config.recipientTab || "list"}
-        onChange={v => set("recipientTab", v)}
-      />
+      <Field label="Source des destinataires">
+        <Select value={config.recipientSource || "list"} onChange={v => set("recipientSource", v)} options={[
+          { value: "list",     label: "👥 Contacts d'une liste" },
+          { value: "tags",     label: "🏷️ Contacts avec un tag" },
+          { value: "variable", label: "📦 Variable du nœud précédent" },
+        ]}/>
+      </Field>
 
       {loadingRecip
         ? <span style={{ fontSize: 12, color: "#94a3b8" }}>Chargement…</span>
         : <>
-          {/* ── Listes ──────────────────────────────────────── */}
-          {(config.recipientTab === "list" || !config.recipientTab) && (
+          {/* ── Liste ───────────────────────────────────────── */}
+          {(config.recipientSource === "list" || !config.recipientSource) && (
             <Field label="Liste de contacts">
               <Select
                 value=""
@@ -1027,69 +1254,66 @@ function EmailForm({ config, set }) {
                 }}
                 options={[
                   { value: "", label: "— Ajouter une liste —" },
-                  ...lists.map(l => ({ value: l.id, label: l.name })),
+                  ...lists.map(l => ({ value: l.id, label: `${l.name}${l._count?.members ? ` (${l._count.members})` : ""}` })),
                 ]}
               />
             </Field>
           )}
 
-          {/* ── Contact individuel ──────────────────────────── */}
-          {config.recipientTab === "contact" && (
-            <Field label="Rechercher un contact">
-              <input
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Nom, email…"
-                style={{
-                  width: "100%", padding: "6px 8px", borderRadius: 6,
-                  border: "1px solid #e2e8f0", fontSize: 12, boxSizing: "border-box",
-                }}
+          {/* ── Tags ────────────────────────────────────────── */}
+          {config.recipientSource === "tags" && (
+            <Field label="Tag">
+              <Select
+                value=""
+                onChange={tag => { if (tag) addRecipient("tag", tag, `🏷️ ${tag}`); }}
+                options={[
+                  { value: "", label: "— Ajouter un tag —" },
+                  ...tags.map(t => ({ value: typeof t === "string" ? t : t.name, label: typeof t === "string" ? t : t.name })),
+                ]}
               />
-              {contacts.length > 0 && (
-                <div style={{
-                  marginTop: 4, border: "1px solid #e2e8f0", borderRadius: 6,
-                  background: "#fff", maxHeight: 160, overflowY: "auto",
-                }}>
-                  {contacts.map(c => (
-                    <div
-                      key={c.id}
-                      onClick={() => {
-                        addRecipient("contact", c.id, `👤 ${c.firstName} ${c.lastName} <${c.email}>`);
-                        setSearch("");
-                        setContacts([]);
-                      }}
-                      style={{
-                        padding: "6px 10px", fontSize: 12, cursor: "pointer",
-                        borderBottom: "1px solid #f1f5f9",
-                      }}
-                      onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"}
-                      onMouseLeave={e => e.currentTarget.style.background = ""}
-                    >
-                      <b>{c.firstName} {c.lastName}</b>
-                      <span style={{ color: "#94a3b8", marginLeft: 6 }}>{c.email}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
             </Field>
           )}
+
+          {/* ── Variable nœud précédent ─────────────────────── */}
+          {config.recipientSource === "variable" && (<>
+            <Field label="Nom de la variable">
+              <Input
+                value={config.variableName || ""}
+                onChange={v => set("variableName", v)}
+                placeholder="ex: db_result"
+              />
+            </Field>
+            <Field label="Chemin vers le tableau (optionnel)">
+              <Input
+                value={config.jsonPath || ""}
+                onChange={v => set("jsonPath", v)}
+                placeholder="ex: data  ou  results.items"
+              />
+              <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 3 }}>
+                Laisser vide si la variable est déjà un tableau
+              </div>
+            </Field>
+            <Field label="Champ email dans chaque objet">
+              <Input
+                value={config.recipientEmailPath || "email"}
+                onChange={v => set("recipientEmailPath", v)}
+                placeholder="email"
+              />
+              <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 3 }}>
+                Laisser vide si c'est déjà une liste de strings
+              </div>
+            </Field>
+          </>)}
         </>
       }
 
-      {/* ── Tags des destinataires sélectionnés ───────────── */}
+      {/* Tags destinataires sélectionnés */}
       {recipients.length > 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
           {recipients.map(r => (
-            <span key={r.id} style={{
-              display: "inline-flex", alignItems: "center", gap: 4,
-              padding: "3px 8px", borderRadius: 99, fontSize: 11,
-              background: "#eff6ff", color: "#3b82f6", border: "1px solid #bfdbfe",
-            }}>
+            <span key={r.id} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 99, fontSize: 11, background: "#eff6ff", color: "#3b82f6", border: "1px solid #bfdbfe" }}>
               {r.label}
-              <span
-                onClick={() => removeRecipient(r.id)}
-                style={{ cursor: "pointer", color: "#94a3b8", fontWeight: 700, lineHeight: 1 }}
-              >×</span>
+              <span onClick={() => removeRecipient(r.id)} style={{ cursor: "pointer", color: "#94a3b8", fontWeight: 700 }}>×</span>
             </span>
           ))}
         </div>
@@ -1134,9 +1358,9 @@ function EmailForm({ config, set }) {
 // ── Tabs destinataires ─────────────────────────────────────────────────────
 function RecipientTabs({ active, onChange }) {
   const tabs = [
-    { value: "list",    label: "📋 Listes"   },
-    // { value: "segment", label: "⚡ Segments" },
-    { value: "contact", label: "👤 Contact"  },
+    { value: "list",    label: "📋 Liste"    },
+    { value: "tag",     label: "🏷️ Tag"      },
+    { value: "context", label: "📦 Contexte" },
   ];
   return (
     <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>

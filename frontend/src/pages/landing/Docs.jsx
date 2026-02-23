@@ -20,7 +20,7 @@ const DOCS = [
     code: 'fetch("/api/v1/send", {\n  headers: { "X-API-Key": "mfk_live_..." }\n})'
   },
   {
-    title: "Send Email",
+    title: "Envoyer un e-mail",
     icon: FiMail,
     desc: "Endpoint principal pour envoyer un ou plusieurs emails. Utilisez du HTML, du texte brut, ou un template.",
     code: 'POST /api/v1/send\n{\n  "to": ["dest@email.com"],\n  "subject": "Hello",\n  "html": "<p>Contenu</p>"\n}'
@@ -32,19 +32,19 @@ const DOCS = [
     code: '// Template: <h1>Bonjour {{name}}</h1>\n{\n  "templateId": "tmpl_abc123",\n  "to": ["user@email.com"],\n  "variables": { "name": "Marie" }\n}'
   },
   {
-    title: "Bulk Sending",
+    title: "Envoi en masse",
     icon: FiUsers,
     desc: "Passez un tableau dans le champ to. Chaque destinataire reçoit un email individuel. Les envois sont groupés par un bulkGroupId.",
     code: '{\n  "to": ["user1@email.com", "user2@email.com"],\n  "subject": "Newsletter",\n  "html": "<p>Contenu</p>"\n}'
   },
   {
-    title: "Rate Limits",
+    title: "Limites d’envoi",
     icon: FiZap,
     desc: "L\'API est limitée à 10 requêtes par minute par clé. En cas de dépassement vous recevez un HTTP 429 avec un header Retry-After.",
     code: '// Réponse 429:\n{\n  "error": "Limite dépassée",\n  "retryAfter": 45\n}'
   },
   {
-    title: "Error Handling",
+    title: "Gestion des erreurs",
     icon: FiShield,
     desc: "Les erreurs retournent un JSON avec un champ error. Codes utilisés : 400 (validation), 401 (auth), 403 (quota), 429 (rate limit), 500 (interne).",
     code: '{\n  "error": "Le champ to est requis"\n}\n// Quota:\n{\n  "error": "Quota mensuel dépassé",\n  "used": 100, "limit": 100\n}'

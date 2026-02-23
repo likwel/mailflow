@@ -15,7 +15,7 @@ export default function Landing({ initialPage = "Home" }) {
       <Navbar active={page} setActive={setPage} />
       {page === "Home"    && <Home />}
       {page === "Docs"    && <Docs />}
-      {page === "Pricing" && <Pricing />}
+      {page === "Tarifs" && <Pricing />}
     </div>
   );
 }

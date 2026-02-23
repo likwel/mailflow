@@ -8,6 +8,7 @@ import client from "../../api/client";
 import { Plus, Eye, Edit2, Trash2, Save, X, Copy, Check, FileText, MailOpen, Info, Mail, Users, FileSpreadsheet, LayoutList, ShieldCheck, Sparkles } from "lucide-react";
 import TemplatePreviewModal from "../../components/ui/TemplatePreviewModal";
 import CustomBadge from "../../components/ui/CustomBadge";
+import EmailBuilderModal from "../../components/emailbuilder/EmailBuilderModal";
 
 const tabs = [
   { id: "tous",   label: "Tous",               icon: LayoutList  },
@@ -26,17 +27,21 @@ export default function Templates() {
   const [copiedId, setCopiedId] = useState(null);
   const [copiedJson, setCopiedJson] = useState(null);
   const [activeTab, setActiveTab] = useState("tous"); // manual, bulk, template
+  const [plan, setPlan] = useState(null);
+  const [builderOpen, setBuilderOpen] = useState(false);
 
   useEffect(() => {
     fetchTemplates();
+    getMyPlan();
   }, []);
+
+  const PLAN_LIMITS = plan;
 
   async function fetchTemplates() {
     setLoading(true);
     setError("");
     try {
       const res = await client.get("/dashboard/templates");
-      console.log(res)
       setList(res.data);
     } catch (err) {
       setError(err.response?.data?.error || "Erreur lors du chargement");
@@ -116,7 +121,15 @@ export default function Templates() {
     return true;
   });
 
-  console.log(filteredList)
+  async function getMyPlan() {
+    try {
+      const res = await client.get("/plans/me");
+      console.log(res)
+      setPlan(res.data);
+    } catch (err) {
+      console.error("Erreur plan:", err);
+    }
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
@@ -127,7 +140,7 @@ export default function Templates() {
             Gérez et créér vos templates avec des variables un ou plusieurs variables
           </p>
         </div>
-        <button
+        {/* <button
           onClick={() => { setEd("new"); setForm({ name: "", subject: "", html: "" }); }}
           style={{
             ...styles.btnGray,
@@ -138,10 +151,33 @@ export default function Templates() {
         >
           <Plus size={16} />
           Nouveau
+        </button> */}
+        <button
+          onClick={() => {
+            setEd("new");
+            setForm({ name: "", subject: "", html: "" });
+            setBuilderOpen(true); // 👈 ouvre la modal
+          }}
+          style={{ ...styles.btnGray, display: "flex", alignItems: "center", gap: 6 }}
+        >
+          <Plus size={16} />
+          Nouveau
         </button>
+
+        <EmailBuilderModal
+          open={builderOpen}
+          onClose={() => setBuilderOpen(false)}
+          onSave={(data) => {
+            // data = { name, subject, document }
+            // → appelle ton API ici, ex: templateService.save(data)
+            console.log("Template sauvegardé :", data);
+            setBuilderOpen(false);
+          }}
+        />
       </div>
 
       <div style={{ display:"flex", background:"#fff" , padding:5, border:'1px solid rgb(226, 230, 235)', borderRadius : 6 }}>
+        
         <div style={{ display:"flex", background:"#f1f5f9", padding :3 , borderRadius : 6}}>
         {tabs.map(tab => {
           const Icon = tab.icon;
@@ -174,6 +210,13 @@ export default function Templates() {
           <p style={{ color: T.danger, fontSize: 13, fontWeight: 600, margin: 0 }}>{error}</p>
         </div>
       )}
+
+      <div style={{ background: "white", border: `1px solid ${T.primaryGray}`, borderRadius: T.radius, padding: "12px 16px", display : "flex", alignItems : "center" , gap : 3}}>
+        <Info size={14} color={T.primary} />
+          <span style={{ fontSize: 12, color: T.primary, fontWeight: 600 }}>
+            {PLAN_LIMITS ? PLAN_LIMITS.templatesMax : '3'} templates max pour votre plan — Passez en Pro pour utiliser davantage 🚀
+          </span>
+      </div>
 
       <TemplatePreviewModal
         previewData={previewData}

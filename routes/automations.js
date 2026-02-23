@@ -613,9 +613,11 @@ async function executeNode(node) {
 
     // ── Base de données ───────────────────────────────────
     case 'database':
-      // Brancher ici sur votre logique Prisma/BDD
-      console.log(`[database] opération="${cfg.operation}" table="${cfg.table}"`);
-      return null;
+      try {
+        return await handleDataBase(cfg, node)
+      } catch (error) {
+        console.log(error)
+      }
 
     // ── Copier champ ──────────────────────────────────────
     case 'copy_field':
@@ -846,5 +848,215 @@ function interpolateVariables(text, context) {
   });
 }
 
+
+async function handleDataBase(cfg, node) {
+  const { dbType = "postgresql", operation = "read" } = cfg;
+  const ctx = node.context || {};
+
+  // ── Helper : interpolation + parse JSON ─────────────────────────────────
+  const parseJson = (str, label) => {
+    if (!str?.trim()) return null;
+    try { return JSON.parse(interpolateVariables(str, ctx)); }
+    catch { throw new Error(`[database] JSON invalide dans "${label}" : ${str}`); }
+  };
+
+  let result = null;
+
+  // ════════════════════════════════════════════════════════════════════════
+  // GOOGLE SHEETS PUBLIC
+  // ════════════════════════════════════════════════════════════════════════
+  if (dbType === "googlesheets") {
+    const {
+      sheetUrl,
+      sheetName      = "Feuille1",
+      sheetRange     = "",
+      googleApiKey,
+      firstRowHeader = true,
+    } = cfg;
+
+    // Extraire le spreadsheetId depuis l'URL
+    const match = sheetUrl?.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+    if (!match) throw new Error("[googlesheets] URL invalide — impossible d'extraire le spreadsheetId");
+    const spreadsheetId = match[1];
+
+    if (!googleApiKey) throw new Error("[googlesheets] Clé API Google manquante");
+
+    const range = sheetRange
+      ? `${encodeURIComponent(sheetName)}!${sheetRange}`
+      : encodeURIComponent(sheetName);
+
+    const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${googleApiKey}`;
+    const res = await fetch(apiUrl);
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(`[googlesheets] Erreur API : ${err?.error?.message || res.statusText}`);
+    }
+
+    const json = await res.json();
+    const rows = json.values || [];
+
+    if (firstRowHeader && rows.length > 0) {
+      const headers = rows[0];
+      result = rows.slice(1).map(row =>
+        Object.fromEntries(headers.map((h, i) => [h, row[i] ?? null]))
+      );
+    } else {
+      result = rows;
+    }
+
+    console.log(`[googlesheets] ${result.length} lignes récupérées depuis "${sheetName}"`);
+  }
+
+  // ════════════════════════════════════════════════════════════════════════
+  // SQL : PostgreSQL / MySQL / SQLite / SQL Server
+  // ════════════════════════════════════════════════════════════════════════
+  else if (["postgresql", "mysql", "sqlite", "mssql"].includes(dbType)) {
+    const { connMode = "url" } = cfg;
+
+    // Construire l'URL de connexion
+    let connectionUrl = cfg.connectionUrl;
+    if (connMode === "manual") {
+      const {
+        host = "localhost", port, user, password,
+        database, ssl,
+      } = cfg;
+      const defaultPort = { postgresql: 5432, mysql: 3306, mssql: 1433 }[dbType];
+      const p     = port || defaultPort;
+      const creds = user ? `${encodeURIComponent(user)}:${encodeURIComponent(password || "")}@` : "";
+      const sslParam = ssl ? "?ssl=true" : "";
+
+      if      (dbType === "postgresql") connectionUrl = `postgresql://${creds}${host}:${p}/${database}${sslParam}`;
+      else if (dbType === "mysql")      connectionUrl = `mysql://${creds}${host}:${p}/${database}${sslParam}`;
+      else if (dbType === "mssql")      connectionUrl = `Server=${host},${p};Database=${database};User Id=${user};Password=${password};`;
+      else if (dbType === "sqlite")     connectionUrl = `file:${database || "./data.db"}`;
+    }
+    if (!connectionUrl) throw new Error("[database] URL de connexion manquante");
+
+    const filter   = parseJson(cfg.filter, "filter");
+    const data     = parseJson(cfg.data,   "data");
+    const rawQuery = cfg.rawQuery ? interpolateVariables(cfg.rawQuery, ctx) : null;
+    const limit    = cfg.limit || 100;
+    const table    = cfg.table || "";
+
+    console.log(`[database] type="${dbType}" op="${operation}" table="${table}"`);
+
+    const { default: knex } = await import("knex");
+    const clientMap = { postgresql: "pg", mysql: "mysql2", sqlite: "better-sqlite3", mssql: "mssql" };
+    const db = knex({
+      client: clientMap[dbType],
+      connection: dbType === "sqlite"
+        ? { filename: connectionUrl.replace("file:", "") }
+        : connectionUrl,
+      useNullAsDefault: true,
+    });
+
+    try {
+      switch (operation) {
+        case "read":
+          result = await db(table).where(filter || {}).first();
+          break;
+        case "readMany":
+          result = await db(table).where(filter || {}).limit(limit);
+          break;
+        case "write":
+          result = (await db(table).insert(data).returning("*")) ?? await db(table).insert(data);
+          break;
+        case "update":
+          result = await db(table).where(filter || {}).update(data);
+          break;
+        case "delete":
+          result = await db(table).where(filter || {}).delete();
+          break;
+        case "raw":
+          result = (await db.raw(rawQuery))?.rows ?? result;
+          break;
+        default:
+          throw new Error(`[database] Opération inconnue : ${operation}`);
+      }
+    } finally {
+      await db.destroy();
+    }
+  }
+
+  // ════════════════════════════════════════════════════════════════════════
+  // MONGODB
+  // ════════════════════════════════════════════════════════════════════════
+  else if (dbType === "mongodb") {
+    const { connMode = "url" } = cfg;
+
+    let connectionUrl = cfg.connectionUrl;
+    if (connMode === "manual") {
+      const {
+        host = "localhost", port = 27017,
+        user, password, database, authSource = "admin",
+      } = cfg;
+      const creds = user ? `${encodeURIComponent(user)}:${encodeURIComponent(password || "")}@` : "";
+      connectionUrl = `mongodb://${creds}${host}:${port}/${database}?authSource=${authSource}`;
+    }
+    if (!connectionUrl) throw new Error("[mongodb] URL de connexion manquante");
+
+    const filter   = parseJson(cfg.filter, "filter");
+    const data     = parseJson(cfg.data,   "data");
+    const rawQuery = cfg.rawQuery ? interpolateVariables(cfg.rawQuery, ctx) : null;
+    const limit    = cfg.limit || 100;
+    const table    = cfg.table || "";
+
+    console.log(`[mongodb] op="${operation}" collection="${table}"`);
+
+    const { MongoClient } = await import("mongodb");
+    const client = new MongoClient(connectionUrl);
+    try {
+      await client.connect();
+      const dbName = cfg.database || new URL(connectionUrl).pathname.replace("/", "");
+      const col = client.db(dbName).collection(table);
+
+      switch (operation) {
+        case "read":
+          result = await col.findOne(filter || {});
+          break;
+        case "readMany":
+          result = await col.find(filter || {}).limit(limit).toArray();
+          break;
+        case "write":
+          result = await col.insertOne(data);
+          break;
+        case "update":
+          result = await col.updateMany(filter || {}, { $set: data });
+          break;
+        case "delete":
+          result = await col.deleteMany(filter || {});
+          break;
+        case "raw":
+          result = await col.aggregate(JSON.parse(rawQuery)).toArray();
+          break;
+        default:
+          throw new Error(`[mongodb] Opération inconnue : ${operation}`);
+      }
+    } finally {
+      await client.close();
+    }
+  }
+
+  else {
+    throw new Error(`[database] Type de DB non supporté : ${dbType}`);
+  }
+
+  // ── Stocker le résultat dans le contexte ────────────────────────────────
+  const outVar = cfg.outputVariable || "db_result";
+  ctx[outVar]             = result;
+  ctx[`node_${node.id}`]  = result;
+
+  console.log(`[database] résultat → context["${outVar}"] =`, JSON.stringify(result)?.slice(0, 120));
+
+  if (
+    cfg.continueOnEmpty === false &&
+    (result === null || result === undefined || (Array.isArray(result) && result.length === 0))
+  ) {
+    throw new Error("[database] Aucun résultat trouvé (continueOnEmpty=false)");
+  }
+
+  return result;
+}
 
 module.exports = router;

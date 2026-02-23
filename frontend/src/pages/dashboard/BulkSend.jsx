@@ -178,7 +178,7 @@ export default function BulkSend() {
         }}>
           <Info size={14} color={T.primary} />
           <span style={{ fontSize: 12, color: T.primary, fontWeight: 600 }}>
-            {PLAN_LIMITS ? PLAN_LIMITS.maxBulkSend : '10'} emails max par envoi
+            {PLAN_LIMITS ? PLAN_LIMITS.maxBulkSend : '10'} emails max par envoi — Passez en Pro pour envoyer davantage 🚀
           </span>
         </div>
       </div>

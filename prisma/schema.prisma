@@ -33,13 +33,33 @@ enum TemplateType {
 model Plan {
   id               String   @id @default(cuid())
   name             String   @unique // FREE, PRO, BUSINESS, CUSTOM
-  displayName      String   // "Gratuit", "Pro", "Business", "Personnalisé"
-  price            Float    @default(0) // Prix mensuel en €
+  displayName      String            // "Gratuit", "Pro", "Business"
+
+  // ── Tarification ──────────────────────────────────
+  price            Float    @default(0)      // Prix mensuel en Ar
+  priceAnnual      Float    @default(0)      // Prix mensuel si facturé annuellement (-20%)
+
+  // ── Quotas emails ─────────────────────────────────
   emailsPerMonth   Int      @default(100)
-  maxBulkSend      Int      @default(10) // Nb max par envoi en lot
-  apiKeysMax       Int      @default(2)
-  templatesMax     Int      @default(5)
-  features         String[] // ["Support prioritaire", "Templates illimités", etc.]
+  maxBulkSend      Int      @default(0)      // 0 = désactivé, -1 = illimité
+
+  // ── Quotas API & templates ────────────────────────
+  apiKeysMax       Int      @default(1)      // -1 = illimité
+  templatesMax     Int      @default(3)      // -1 = illimité
+
+  // ── Quotas contacts & listes ──────────────────────
+  contactsMax      Int      @default(200)    // -1 = illimité
+  listsMax         Int      @default(2)      // -1 = illimité
+
+  // ── Quotas workflows ──────────────────────────────
+  workflowsMax     Int      @default(0)      // 0 = désactivé, -1 = illimité
+
+  // ── Fonctionnalités ───────────────────────────────
+  webhooks         Boolean  @default(false)
+  logRetentionDays Int      @default(7)      // Rétention des logs en jours
+
+  // ── Metadata ──────────────────────────────────────
+  features         String[]                  // Affiché sur la page pricing
   isCustom         Boolean  @default(false)
   isActive         Boolean  @default(true)
   createdAt        DateTime @default(now())
@@ -53,10 +73,10 @@ model Plan {
 model CustomPlan {
   id               String   @id @default(cuid())
   userId           String   @unique
-  basePlanId       String   // Plan de base (PRO, BUSINESS)
+  basePlanId       String
   emailsPerMonth   Int
   maxBulkSend      Int
-  price            Float    // Prix calculé
+  price            Float
   features         String[]
   status           PlanStatus @default(PENDING)
   requestedAt      DateTime @default(now())

@@ -85,7 +85,7 @@ function VariablesPanel1({ variables, values, onChange }) {
     <div style={{ border:`1px solid ${T.border}`, borderRadius:10, overflow:"hidden" }}>
       <div style={{ padding:"11px 16px", background:"#f8fafc", borderBottom:`1px solid ${T.border}`, display:"flex", alignItems:"center", gap:8 }}>
         <Zap size={15} color={T.primary}/>
-        <span style={{ fontWeight:600, fontSize:14, color:T.text }}>Variables détectées ({variables.length})</span>
+        <span style={{ fontWeight:600, fontSize:14, color:T.text }}> ({variables.length})</span>
         <span style={{ marginLeft:"auto", fontSize:12, color:T.textSub }}>Valeur par défaut si champ absent</span>
       </div>
       <div style={{ padding:"14px 16px", display:"flex", flexDirection:"column", gap:10 }}>

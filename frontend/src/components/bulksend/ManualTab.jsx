@@ -40,7 +40,7 @@ function SimpleVariablesPanel({ variables, values, onChange, onImport }) {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 16px", background: "#f8fafc", borderBottom: `1px solid ${T.border}` }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Zap size={15} color={T.primary} />
-          <span style={{ fontWeight: 600, fontSize: 14, color: T.text }}>Variables détectées ({variables.length})</span>
+          <span style={{ fontWeight: 600, fontSize: 14, color: T.text }}>Variables utilisées ({variables.length})</span>
         </div>
         {onImport && (
           <>
@@ -150,7 +150,7 @@ function VariablesPanel({ variables, values, onChange, onImport }) {
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Zap size={16} color={T.primary}/>
           <span style={{ fontWeight: 600, fontSize: 14, color: T.text }}>
-            Variables détectées ({variables.length})
+            Variables utilisées ({variables.length})
           </span>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
