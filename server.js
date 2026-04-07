@@ -26,7 +26,7 @@ const prisma = new PrismaClient();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors({ origin: ["http://localhost:3000", "http://localhost:5500"], methods: ['GET','POST','OPTIONS','PATCH', 'DELETE', 'PUT'], credentials: true }));
+app.use(cors({ origin: ["http://localhost:3000","http://localhost:3001", "http://localhost:5500"], methods: ['GET','POST','OPTIONS','PATCH', 'DELETE', 'PUT'], credentials: true }));
 app.use(express.json());
 
 // Routes publiques (pas d'auth nécessaire pour /api/v1/send)

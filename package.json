@@ -10,6 +10,7 @@
     "db:studio": "prisma studio"
   },
   "dependencies": {
+    "@open-email/editor": "^0.1.51",
     "@prisma/client": "^5.22.0",
     "axios": "^1.6.0",
     "bcryptjs": "^2.4.3",

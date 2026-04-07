@@ -76,7 +76,7 @@ export default function EmailBuilderModal({ open, onClose, onSave, initialData }
             ref={editorRef}
             className = "andrans"
             onReady={handleReady}
-            style={{ height: "100%", display: editorReady ? "flex" : "none" }}
+            style={{ height: "100vh", display: editorReady ? "flex" : "none" }}
             options={{
               locale: "fr-FR",
               appearance: { theme: "light" },
